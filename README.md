@@ -16,7 +16,7 @@ An SMS and MMS app for Android with a private computer inbox on your own Wi-Fi.
 
 </div>
 
-Set BlurtText as your default texting app, then open `https://blurttext.lan:8743` on a computer on the same Wi-Fi to read and reply from a real keyboard. No account, no cloud, and message bodies never leave your network.
+Set BlurtText as your default texting app, then open `https://blurttext.local:8743` on a computer on the same Wi-Fi to read and reply from a real keyboard. No account, no cloud, and message bodies never leave your network.
 
 <p align="center">
   <img src="docs/screenshots/inbox.webp" width="200" alt="Inbox">

@@ -586,7 +586,7 @@ class MessageLogicTest {
         assertTrue(footerGlyphDp(96) > footerGlyphDp(48))
         assertEquals("BlurtText", brandProductText("LanText", "BlurtText"))
         assertEquals("Open BlurtText", brandProductText("Open LanMessaging", "BlurtText"))
-        assertEquals("blurttext.lan", brandProductText("blurttext.lan", "BlurtText"))
+        assertEquals("blurttext.local", brandProductText("blurttext.local", "BlurtText"))
         assertFalse(webAccessEnabled(false, 1))
         assertTrue(webAccessEnabled(true, 0))
         assertFalse(webAccessEnabled(null, 0))
@@ -662,12 +662,12 @@ class MessageLogicTest {
     @Test
     fun certificateDnsNameIsReadWhenTheSanTypeIsAJavaInteger() {
         val rows = listOf(
-            listOf(Integer.valueOf(2), "blurttext.lan."),
+            listOf(Integer.valueOf(2), "blurttext.local."),
             listOf(Integer.valueOf(7), byteArrayOf(10, 74, 10, 109)),
             listOf(Integer.valueOf(2), "localhost".toByteArray(Charsets.UTF_8)),
         )
         assertEquals(
-            listOf("blurttext.lan", "localhost"),
+            listOf("blurttext.local", "localhost"),
             TlsCertificateStore.dnsNamesFromSan(rows),
         )
     }

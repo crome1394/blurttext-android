@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- The computer address is https://blurttext.local and the port. Computers look up .local names on the Wi-Fi, so the name now opens without a DNS entry. The old blurttext.lan name never reached the phone.
+
 ## 0.1.5
 
 - About and the test-APK link open the renamed github.com/crome1394/blurttext-android project.

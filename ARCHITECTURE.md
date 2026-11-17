@@ -63,7 +63,7 @@ There is no divider between rows. A contact photo stays in the avatar.
 
 ## Computer inbox
 
-The computer inbox is part of BlurtText. It binds on an allowed Wi-Fi network and serves the browser UI, which is also labeled BlurtText. The address is `https://blurttext.lan` and the port (8743 unless it was changed). The numeric address on the phone still works. A new name issues a new certificate, so the browser warning appears again. The inbox list uses the phone's Group conversations setting. Sends from the browser go through the same telephony provider. The phone must be the default SMS app before it can write messages.
+The computer inbox is part of BlurtText. It binds on an allowed Wi-Fi network and serves the browser UI, which is also labeled BlurtText. The address is `https://blurttext.local` and the port (8743 unless it was changed). The numeric address on the phone still works. A new name issues a new certificate, so the browser warning appears again. The inbox list uses the phone's Group conversations setting. Sends from the browser go through the same telephony provider. The phone must be the default SMS app before it can write messages.
 
 ## Build
 

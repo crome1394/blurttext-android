@@ -34,5 +34,5 @@ Older phones keep everything else.
 | Notifications | New-message alerts and the computer-inbox pairing prompt |
 | Location, Nearby devices | Android hides the Wi-Fi name without them; the name is compared with your allowlist on the phone. Location is also read when you choose to share your location in a message. |
 | Local network (Android 17+) | Lets a computer on your Wi-Fi open the inbox |
-| Internet, foreground service, Wi-Fi multicast | The computer-inbox server and the `blurttext.lan` name |
+| Internet, foreground service, Wi-Fi multicast | The computer-inbox server and the `blurttext.local` name |
 | Exact alarms | Scheduled texts |

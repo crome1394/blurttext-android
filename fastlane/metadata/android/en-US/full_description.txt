@@ -13,7 +13,7 @@
 
 <p><b>On your computer</b></p>
 <ul>
-<li>Open https://blurttext.lan:8743 in any browser on an allowed Wi-Fi network</li>
+<li>Open https://blurttext.local:8743 in any browser on an allowed Wi-Fi network</li>
 <li>Pair with a PIN or QR code shown on the phone</li>
 <li>Two-pane inbox: read, reply, and paste pictures as MMS</li>
 <li>The server stops when the phone leaves the allowed network</li>
