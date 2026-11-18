@@ -37,9 +37,12 @@ Get `blurttext-<version>.apk` from **[Releases](https://github.com/crome1394/blu
 | **Inbox** | Swipe to delete or mark read/unread, with undo from Trash; pin, archive, search, filter |
 | **Sending** | Multi-SIM, scheduled texts, attach a photo or your location |
 | **Blocking** | Block list and keyword filter |
-| **Look** | Nine color palettes, light and dark, launcher icon colors, text size |
+| **Look** | Nine color palettes in light and dark, each checked for readable contrast; twelve app icon colors, also used in recent apps and notifications; text size |
 | **Computer inbox** | Browser inbox on allowed Wi-Fi networks, paired by PIN or QR; stops when the phone leaves |
 | **GIFs** | Optional KLIPY search when you save your own key |
+| **Backup** | One ZIP with every text, picture message, and attachment; restore on any phone, skipping what is already there |
+| **Permissions** | Settings → Permissions shows each permission, why it is needed, and a button to allow it |
+| **Privacy** | No ads, analytics, telemetry, or tracking; see [PRIVACY.md](PRIVACY.md) |
 
 ## Screenshots
 
@@ -54,6 +57,8 @@ Screenshots use made-up contacts and messages on the Android emulator.
 1. Install the APK and accept the default-SMS prompt.
 2. **Settings → BlurtText**: turn on **Web access** and allow your home Wi-Fi.
 3. Open the address shown on the phone in a browser, accept the certificate once, and enter the PIN.
+
+If the computer inbox says the Wi-Fi name is hidden, allow **Precise** location and turn on Location; **Settings → Permissions** has buttons for both.
 
 ## Documentation
 

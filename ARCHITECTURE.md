@@ -19,10 +19,20 @@ Jetpack Compose. `MessagesRoot` shows one main screen at a time. Settings and Ne
 | Inbox | Conversation list, search, filter, selection ribbon |
 | Thread | One conversation and the composer |
 | Compose | A new message, including several recipients, in a card over the screen behind it |
-| Settings | Appearance, swipe actions, SIM, block list, computer inbox, about, in a card |
+| Settings | Appearance, swipe actions, SIM, block list, backup, computer inbox, permissions, about, in a card |
 | Archive, Blocked, Scheduled | The side lists |
 
 Settings and drafts are in DataStore (`messages-local`). Pins, scheduled sends, and the KLIPY key live there too. Messages themselves stay in Android's telephony provider.
+
+`Theme.kt` builds every Material color role from a palette and picks or deepens text colors to reach 4.5:1 contrast. `ThemeContrastTest` checks all palettes in light and dark. Screens take colors from the theme, not fixed values.
+
+## Backup
+
+`BackupWriter` streams the SMS and MMS stores into a ZIP (`messages.json` first, then each attachment stored under `parts/`). `BackupRestorer` reads it back into the stores, skips messages already there, and re-dates each conversation afterwards. Both write straight to or from a document the user picks, so a large backup never needs a second copy. The format is in [docs/backup.md](docs/backup.md).
+
+## Errors
+
+Provider, radio, and file errors are caught through `util/attempt {}`, which returns a `Result` but lets coroutine cancellation and `Error`s through. Plain `catch (t: Throwable)` is not used.
 
 ## Sending
 
