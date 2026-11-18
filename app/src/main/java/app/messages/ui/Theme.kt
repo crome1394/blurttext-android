@@ -97,6 +97,8 @@ private data class ColorSet(
             )
         val onOutgoing = readableOn(bubble, outgoingInk, darkText)
         val onIncoming = readableOn(incoming, ink, darkText)
+        // Text on the error color is checked against the adjusted color, not the raw palette red.
+        val alarm = ensureContrast(danger, listOf(bg, canvas), toward = ink)
         val toward = if (dark) Color.White else Color.Black
 
         val steps = if (dark) DarkSurfaceSteps else LightSurfaceSteps
@@ -126,8 +128,8 @@ private data class ColorSet(
             surfaceTint = accent,
             inverseSurface = ink,
             inverseOnSurface = bg,
-            error = ensureContrast(danger, listOf(bg, canvas), toward = ink),
-            onError = readableOn(danger, Color.White, darkText),
+            error = alarm,
+            onError = readableOn(alarm, Color.White, darkText),
             outline = line,
             outlineVariant = line,
             surfaceDim = if (dark) bg else step(steps.edge),

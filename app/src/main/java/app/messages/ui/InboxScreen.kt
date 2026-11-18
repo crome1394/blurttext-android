@@ -702,7 +702,10 @@ private fun SwipeConversation(
         if (offsetPx != 0f && revealed != "none") {
             val delete = revealed == "delete"
             val mailLabel = swipeReadUnreadLabel(isUnread)
-            val color = if (delete) Color(0xFFB3261E) else Color(0xFF1B6B4A)
+            // Theme roles, so every palette keeps the label readable (see ThemeContrastTest).
+            val scheme = MaterialTheme.colorScheme
+            val color = if (delete) scheme.error else scheme.primary
+            val onColor = if (delete) scheme.onError else scheme.onPrimary
             Box(
                 Modifier
                     .matchParentSize()
@@ -718,9 +721,9 @@ private fun SwipeConversation(
                             else -> Icons.Filled.MarkEmailUnread
                         },
                         contentDescription = if (delete) "Delete" else mailLabel,
-                        tint = Color.White,
+                        tint = onColor,
                     )
-                    Text(if (delete) "Delete" else mailLabel, color = Color.White, fontWeight = FontWeight.SemiBold)
+                    Text(if (delete) "Delete" else mailLabel, color = onColor, fontWeight = FontWeight.SemiBold)
                 }
             }
         }

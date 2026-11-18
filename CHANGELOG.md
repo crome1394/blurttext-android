@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- The swipe colors use the theme instead of fixed red and green, the Nord dark error color is readable, and palette swatches have an outline so dark ones show on a dark page.
 - Settings has a Permissions page: every permission, why BlurtText needs it, whether it is on, an Allow button, and Open settings for when Android stops asking. Approximate-only location is called out.
 - About has a Privacy statement: no ads, analytics, telemetry, tracking, or spyware, and the four times BlurtText goes online. See [PRIVACY.md](PRIVACY.md).
 - Backups include picture messages and their photos, videos, and audio, in one ZIP file saved with the system "Save as" screen. Restore keeps read state, sent and failed status, and conversation dates, skips messages already on the phone, and still reads older JSON backups. See [docs/backup.md](docs/backup.md).

@@ -25,6 +25,7 @@ class ThemeContrastTest {
         for ((name, s) in schemes()) {
             assertReadable(name, "onPrimary/primary", s.onPrimary, s.primary)
             assertReadable(name, "onSecondary/secondary", s.onSecondary, s.secondary)
+            assertReadable(name, "onError/error", s.onError, s.error)
             assertReadable(name, "onPrimaryContainer/primaryContainer", s.onPrimaryContainer, s.primaryContainer)
             assertReadable(name, "onSecondaryContainer/secondaryContainer", s.onSecondaryContainer, s.secondaryContainer)
         }

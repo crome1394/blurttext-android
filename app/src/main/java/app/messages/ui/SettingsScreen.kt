@@ -1179,9 +1179,6 @@ private fun SwipeActionCard(
     }
 }
 
-private val SwipeDeletePreview = Color(0xFFE46962)
-private val SwipeUnreadPreview = Color(0xFF1A73E8)
-
 @Composable
 private fun SwipePreviewGraphic(
     action: String,
@@ -1205,17 +1202,18 @@ private fun SwipePreviewGraphic(
 private fun SwipePreviewBlock(action: String) {
     if (action == "none") return
     val delete = action == "delete"
+    val scheme = MaterialTheme.colorScheme
     Box(
         Modifier
             .width(84.dp)
             .height(76.dp)
-            .background(if (delete) SwipeDeletePreview else SwipeUnreadPreview),
+            .background(if (delete) scheme.error else scheme.primary),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             if (delete) Icons.Filled.Delete else Icons.Filled.MarkEmailUnread,
             contentDescription = null,
-            tint = Color.White,
+            tint = if (delete) scheme.onError else scheme.onPrimary,
             modifier = Modifier.size(26.dp),
         )
     }
@@ -1765,7 +1763,9 @@ private fun ThemePalettePicker(
                             Modifier
                                 .size(14.dp)
                                 .clip(CircleShape)
-                                .background(choice.swatch),
+                                .background(choice.swatch)
+                                // An outline keeps dark swatches (Slate, Contrast) visible on a dark page.
+                                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
                         )
                         Text(if (selected) "  ● ${choice.label}" else "  ${choice.label}")
                     }
