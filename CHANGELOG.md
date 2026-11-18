@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Settings has a Permissions page: every permission, why BlurtText needs it, whether it is on, an Allow button, and Open settings for when Android stops asking. Approximate-only location is called out.
+- About has a Privacy statement: no ads, analytics, telemetry, tracking, or spyware, and the four times BlurtText goes online. See [PRIVACY.md](PRIVACY.md).
 - Backups include picture messages and their photos, videos, and audio, in one ZIP file saved with the system "Save as" screen. Restore keeps read state, sent and failed status, and conversation dates, skips messages already on the phone, and still reads older JSON backups. See [docs/backup.md](docs/backup.md).
 - Every theme keeps button, bubble, and link text readable in light and dark mode. Sheets, menus, and fields use the theme colors instead of a lavender default, settings pages follow the theme instead of black, and dark mode no longer flashes white on launch.
 - With three-button navigation, the inbox footer and the conversation composer sit above the Back, Home, and Recents buttons instead of under them.

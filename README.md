@@ -60,6 +60,7 @@ Screenshots use made-up contacts and messages on the Android emulator.
 | Doc | What's in it |
 |---|---|
 | [Compatibility](docs/compatibility.md) | Android versions, per-version features, permissions |
+| [Privacy](PRIVACY.md) | What stays on the phone, the four times it goes online, location |
 | [Backup and restore](docs/backup.md) | What a backup keeps, how restore works, the file format |
 | [Building and releasing](docs/building.md) | Build, default-SMS commands, signed release steps |
 | [Architecture](ARCHITECTURE.md) | Modules, screens, sending and receiving, group threads |

@@ -113,6 +113,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 const val SETTINGS_TAB_LAN_MESSAGING = 11
+const val SETTINGS_TAB_PERMISSIONS = 12
 
 internal const val SETTINGS_CARD_MIN = 0.34f
 internal const val SETTINGS_CARD_MAX = 0.94f
@@ -307,6 +308,10 @@ fun SettingsScreen(
                                 }
                             }
 
+                            SETTINGS_TAB_PERMISSIONS -> {
+                                PermissionsPage(query, onRequestRole)
+                            }
+
                             else -> {
                                 AboutPage(query)
                             }
@@ -356,6 +361,7 @@ private val settingTabs =
         "Ribbon",
         "Footer",
         "BlurtText",
+        "Permissions",
         "About",
     )
 
@@ -377,7 +383,9 @@ private val tabSearchWords =
         "ribbon pin unpin mark as read mark as unread delete block archive show hide drag move to the top selected arrangement",
         "footer height search settings computer filter trash icon show hide",
         "blurttext wifi port paired devices web access networks listen",
-        "version blurttext computer access github apache license apk download",
+        "permissions allow sms contacts phone notifications camera location nearby wi-fi local network exact alarms " +
+            "battery background default privacy",
+        "version blurttext computer access github apache license apk download privacy telemetry tracking spyware ads",
     )
 
 private fun tabMatches(
@@ -1292,6 +1300,8 @@ private fun AboutPage(query: String) {
             "Apache",
             "license",
             "APK",
+            "Privacy",
+            PRIVACY_STATEMENT,
         )
     ) {
         NoMatches()
@@ -1318,6 +1328,12 @@ private fun AboutPage(query: String) {
                 supportingContent = {
                     Text("BlurtText ${BuildConfig.VERSION_NAME}. Type on a computer over Wi-Fi from this phone.")
                 },
+            )
+        }
+        item {
+            SettingsListItem(
+                headlineContent = { Text("Privacy") },
+                supportingContent = { Text(PRIVACY_STATEMENT) },
             )
         }
         item {
@@ -1785,3 +1801,12 @@ private fun Choice(
         }
     }
 }
+
+/** Shown on About. Every claim here is checked against the code; see PRIVACY.md before changing it. */
+private const val PRIVACY_STATEMENT =
+    "No ads, analytics, crash reports, telemetry, or tracking, and no spyware. There is no account and no BlurtText " +
+        "server. Your messages stay in this phone's message store.\n\n" +
+        "BlurtText goes online only to send and receive through your carrier, to search GIFs on KLIPY after you add " +
+        "your own key, to serve the computer inbox to browsers on Wi-Fi networks you allow, and to open links you tap. " +
+        "Location is read only to check the Wi-Fi name, or when you share where you are in a text.\n\n" +
+        "The source code is open on GitHub, so anyone can check this."
