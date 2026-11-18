@@ -1,5 +1,7 @@
 package app.messages.sms
 
+import com.google.android.mms.pdu_alt.PduHeaders
+
 /**
  * Reads an MMS notification PDU (m-notification-ind) far enough to download it.
  * Header numbers follow OMA-TS-MMS-ENC.
@@ -30,55 +32,55 @@ object MmsNotificationParser {
         var size = 0L
         while (i < pdu.size) {
             val field = u8(pdu, i)
-            if (field < 0x80) break
+            if (field < Wsp.SHORT_INTEGER) break
             i += 1
-            when (field and 0x7F) {
-                0x0C -> {
+            when (field) {
+                PduHeaders.MESSAGE_TYPE -> {
                     type = u8(pdu, i)
                     i += 1
                 }
 
-                0x0D -> {
+                PduHeaders.MMS_VERSION -> {
                     i += 1
                 }
 
-                0x18 -> {
+                PduHeaders.TRANSACTION_ID -> {
                     val text = readText(pdu, i)
                     transactionId = text.value
                     i = text.next
                 }
 
-                0x03 -> {
+                PduHeaders.CONTENT_LOCATION -> {
                     val text = readText(pdu, i)
                     location = text.value
                     i = text.next
                 }
 
-                0x09 -> {
+                PduHeaders.FROM -> {
                     val parsed = readFrom(pdu, i)
                     from = parsed.value
                     i = parsed.next
                 }
 
-                0x0E -> {
+                PduHeaders.MESSAGE_SIZE -> {
                     val number = readLong(pdu, i)
                     size = number.value
                     i = number.next
                 }
 
-                0x08, 0x05 -> {
+                PduHeaders.EXPIRY, PduHeaders.DATE -> {
                     i = skipLength(pdu, i)
                 }
 
-                0x16, 0x13 -> {
+                PduHeaders.SUBJECT, PduHeaders.RESPONSE_TEXT -> {
                     i = skipEncodedString(pdu, i)
                 }
 
-                0x0A -> {
+                PduHeaders.MESSAGE_CLASS -> {
                     i = skipMessageClass(pdu, i)
                 }
 
-                0x0B -> {
+                PduHeaders.MESSAGE_ID -> {
                     i = readText(pdu, i).next
                 }
 
@@ -87,7 +89,7 @@ object MmsNotificationParser {
                 }
             }
         }
-        if (type != 0x82 || location.isBlank()) return null
+        if (type != PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND || location.isBlank()) return null
         return Notification(
             transactionId = transactionId,
             contentLocation = location,
@@ -111,7 +113,7 @@ object MmsNotificationParser {
         start: Int,
     ): Text {
         var i = start
-        if (i < pdu.size && u8(pdu, i) == 127) i += 1
+        if (i < pdu.size && u8(pdu, i) == Wsp.TEXT_QUOTE) i += 1
         val begin = i
         while (i < pdu.size && pdu[i].toInt() != 0) i += 1
         val value = pdu.copyOfRange(begin, i).toString(Charsets.UTF_8)
@@ -126,7 +128,7 @@ object MmsNotificationParser {
         val len = u8(pdu, start)
         var value = 0L
         for (offset in 1..len) {
-            value = (value shl 8) or u8(pdu, start + offset).toLong()
+            value = (value shl Wsp.BYTE_BITS) or u8(pdu, start + offset).toLong()
         }
         return Number(value, start + 1 + len)
     }
@@ -141,8 +143,8 @@ object MmsNotificationParser {
         val token = u8(pdu, valueStart)
         val address =
             when (token) {
-                0x81 -> ""
-                0x80 -> readEncodedString(pdu, valueStart + 1).value
+                PduHeaders.FROM_INSERT_ADDRESS_TOKEN -> ""
+                PduHeaders.FROM_ADDRESS_PRESENT_TOKEN -> readEncodedString(pdu, valueStart + 1).value
                 else -> readEncodedString(pdu, valueStart).value
             }
         return Text(address, end)
@@ -154,7 +156,7 @@ object MmsNotificationParser {
     ): Text {
         if (start >= pdu.size) return Text("", start)
         val marker = u8(pdu, start)
-        if (marker < 32) {
+        if (marker < Wsp.TEXT_MIN) {
             val end = skipLength(pdu, start)
             val contents = lengthContents(pdu, start)
             val text = if (contents < end) readText(pdu, contents + 1) else Text("", end)
@@ -169,7 +171,7 @@ object MmsNotificationParser {
     ): Int {
         if (start >= pdu.size) return start
         val marker = u8(pdu, start)
-        return if (marker < 32) skipLength(pdu, start) else readText(pdu, start).next
+        return if (marker < Wsp.TEXT_MIN) skipLength(pdu, start) else readText(pdu, start).next
     }
 
     private fun skipMessageClass(
@@ -177,7 +179,7 @@ object MmsNotificationParser {
         start: Int,
     ): Int {
         if (start >= pdu.size) return start
-        return if (u8(pdu, start) >= 128) start + 1 else readText(pdu, start).next
+        return if (u8(pdu, start) >= Wsp.SHORT_INTEGER) start + 1 else readText(pdu, start).next
     }
 
     private fun skipUnknown(
@@ -187,8 +189,8 @@ object MmsNotificationParser {
         if (start >= pdu.size) return start
         val marker = u8(pdu, start)
         return when {
-            marker >= 0x80 -> start + 1
-            marker <= 31 -> skipLength(pdu, start)
+            marker >= Wsp.SHORT_INTEGER -> start + 1
+            marker <= Wsp.LENGTH_QUOTE -> skipLength(pdu, start)
             else -> readText(pdu, start).next
         }
     }
@@ -201,11 +203,11 @@ object MmsNotificationParser {
         val marker = u8(pdu, start)
         val end =
             when {
-                marker < 31 -> {
+                marker < Wsp.LENGTH_QUOTE -> {
                     start + 1 + marker
                 }
 
-                marker == 31 -> {
+                marker == Wsp.LENGTH_QUOTE -> {
                     val length = readUintvar(pdu, start + 1)
                     val next = length.next.toLong() + length.value
                     if (next > Int.MAX_VALUE) error("mms length")
@@ -225,7 +227,7 @@ object MmsNotificationParser {
         start: Int,
     ): Int {
         val marker = u8(pdu, start)
-        return if (marker == 31) readUintvar(pdu, start + 1).next else start + 1
+        return if (marker == Wsp.LENGTH_QUOTE) readUintvar(pdu, start + 1).next else start + 1
     }
 
     private fun readUintvar(
@@ -234,12 +236,12 @@ object MmsNotificationParser {
     ): Number {
         var value = 0L
         var i = start
-        repeat(5) {
+        repeat(Wsp.UINTVAR_MAX_BYTES) {
             if (i >= pdu.size) return Number(value, i)
             val byte = u8(pdu, i)
             i += 1
-            value = (value shl 7) or (byte and 0x7F).toLong()
-            if (byte and 0x80 == 0) return Number(value, i)
+            value = (value shl Wsp.UINTVAR_BITS) or (byte and Wsp.SHORT_INTEGER_MASK).toLong()
+            if (byte and Wsp.UINTVAR_CONTINUE == 0) return Number(value, i)
         }
         return Number(value, i)
     }
@@ -251,6 +253,6 @@ object MmsNotificationParser {
         index: Int,
     ): Int {
         if (index < 0 || index >= pdu.size) error("mms pdu ended early")
-        return pdu[index].toInt() and 0xFF
+        return pdu[index].toInt() and Wsp.BYTE_MASK
     }
 }

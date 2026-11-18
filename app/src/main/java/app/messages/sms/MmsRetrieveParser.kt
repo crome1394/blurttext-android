@@ -1,5 +1,8 @@
 package app.messages.sms
 
+import com.google.android.mms.pdu_alt.CharacterSets
+import com.google.android.mms.pdu_alt.PduHeaders
+
 /**
  * Reads an m-retrieve-conf PDU (OMA-TS-MMS-ENC) far enough to store its parts.
  * The platform download writes this PDU to a file. The telephony provider does
@@ -24,7 +27,7 @@ object MmsRetrieveParser {
     )
 
     fun parse(pdu: ByteArray?): Retrieved? {
-        if (pdu == null || pdu.size < 4) return null
+        if (pdu == null || pdu.size < MIN_PDU_SIZE) return null
         return try {
             read(pdu)
         } catch (_: Exception) {
@@ -42,45 +45,45 @@ object MmsRetrieveParser {
         val limit = pdu.size
         while (i < limit) {
             val field = u8(pdu, i)
-            if (field < 0x80) return null
+            if (field < Wsp.SHORT_INTEGER) return null
             i += 1
             when (field) {
-                0x8C -> {
+                PduHeaders.MESSAGE_TYPE -> {
                     type = u8(pdu, i)
                     i += 1
                 }
 
-                0x8D, 0x8F, 0x86, 0x90 -> {
+                PduHeaders.MMS_VERSION, PduHeaders.PRIORITY, PduHeaders.DELIVERY_REPORT, PduHeaders.READ_REPORT -> {
                     i += 1
                 }
 
-                0x98, 0x8B -> {
+                PduHeaders.TRANSACTION_ID, PduHeaders.MESSAGE_ID -> {
                     i = readText(pdu, i, limit).next
                 }
 
-                0x85 -> {
+                PduHeaders.DATE -> {
                     val number = readLong(pdu, i, limit)
                     date = number.value
                     i = number.next
                 }
 
-                0x89 -> {
+                PduHeaders.FROM -> {
                     val parsed = readFrom(pdu, i, limit)
                     from = parsed.value
                     i = parsed.next
                 }
 
-                0x97, 0x82 -> {
+                PduHeaders.TO, PduHeaders.CC -> {
                     val parsed = readEncoded(pdu, i, limit)
                     val address = cleanAddress(parsed.value)
                     if (address.isNotBlank() && !address.equals("insert-address-token", true)) {
-                        if (field == 0x97) to += address else cc += address
+                        if (field == PduHeaders.TO) to += address else cc += address
                     }
                     i = parsed.next
                 }
 
-                0x84 -> {
-                    if (type != 0x84) return null
+                PduHeaders.CONTENT_TYPE -> {
+                    if (type != PduHeaders.MESSAGE_TYPE_RETRIEVE_CONF) return null
                     i = skipContentType(pdu, i, limit)
                     val parts = readParts(pdu, i, limit)
                     return Retrieved(cleanAddress(from), date, parts, to, cc)
@@ -101,7 +104,7 @@ object MmsRetrieveParser {
     ): List<Part> {
         val count = readUintvar(pdu, start, limit)
         var i = count.next
-        val total = count.value.coerceIn(0L, 16L).toInt()
+        val total = count.value.coerceIn(0L, MAX_PARTS).toInt()
         val out = ArrayList<Part>(total)
         repeat(total) {
             val headerLen = readUintvar(pdu, i, limit)
@@ -131,10 +134,10 @@ object MmsRetrieveParser {
         var name = ""
         while (i < headerEnd) {
             val field = u8(pdu, i)
-            if (field >= 0x80) {
+            if (field >= Wsp.SHORT_INTEGER) {
                 i += 1
                 when (field) {
-                    0x8E, 0xC0 -> {
+                    Wsp.PART_CONTENT_LOCATION, Wsp.PART_CONTENT_ID -> {
                         val text = readText(pdu, i, headerEnd)
                         val value =
                             text.value
@@ -149,7 +152,7 @@ object MmsRetrieveParser {
                         i = skipValue(pdu, i, headerEnd)
                     }
                 }
-            } else if (field < 32) {
+            } else if (field < Wsp.TEXT_MIN) {
                 i = skipLength(pdu, i, headerEnd)
             } else {
                 i = readText(pdu, i, headerEnd).next
@@ -191,8 +194,8 @@ object MmsRetrieveParser {
         limit: Int,
     ): Typed {
         val marker = u8(pdu, start)
-        if (marker >= 0x80) return Typed(mimeOf(marker and 0x7F), start + 1, UTF_8)
-        if (marker <= 31) {
+        if (marker >= Wsp.SHORT_INTEGER) return Typed(mimeOf(marker and Wsp.SHORT_INTEGER_MASK), start + 1, UTF_8)
+        if (marker <= Wsp.LENGTH_QUOTE) {
             val end = skipLength(pdu, start, limit)
             val contents = lengthContents(pdu, start)
             if (contents >= end) return Typed("application/octet-stream", end, UTF_8)
@@ -215,7 +218,7 @@ object MmsRetrieveParser {
     ): Media {
         if (start >= end) return Media("application/octet-stream", start)
         val marker = u8(pdu, start)
-        if (marker >= 0x80) return Media(mimeOf(marker and 0x7F), start + 1)
+        if (marker >= Wsp.SHORT_INTEGER) return Media(mimeOf(marker and Wsp.SHORT_INTEGER_MASK), start + 1)
         val text = readText(pdu, start, end)
         return Media(text.value.ifBlank { "application/octet-stream" }, text.next)
     }
@@ -229,11 +232,11 @@ object MmsRetrieveParser {
         var charset = UTF_8
         while (i < end) {
             val marker = u8(pdu, i)
-            if (marker >= 0x80) {
+            if (marker >= Wsp.SHORT_INTEGER) {
                 val value = readTypedValue(pdu, i + 1, end)
-                if (marker and 0x7F == 0x01) charset = value.mib ?: mibForName(value.text) ?: UTF_8
+                if (marker and Wsp.SHORT_INTEGER_MASK == Wsp.PARAM_CHARSET) charset = value.mib ?: mibForName(value.text) ?: UTF_8
                 i = value.next
-            } else if (marker < 32) {
+            } else if (marker < Wsp.TEXT_MIN) {
                 val next = skipLength(pdu, i, end)
                 if (next <= i) break
                 i = next
@@ -262,10 +265,10 @@ object MmsRetrieveParser {
     ): TypedValue {
         if (start >= end) return TypedValue(null, "", start)
         val marker = u8(pdu, start)
-        if (marker >= 0x80) return TypedValue(marker and 0x7F, "", start + 1)
-        if (marker in 1..30 && start + 1 + marker <= end) {
+        if (marker >= Wsp.SHORT_INTEGER) return TypedValue(marker and Wsp.SHORT_INTEGER_MASK, "", start + 1)
+        if (marker in 1..Wsp.SHORT_LENGTH_MAX && start + 1 + marker <= end) {
             var value = 0
-            for (offset in 1..marker) value = (value shl 8) or u8(pdu, start + offset)
+            for (offset in 1..marker) value = (value shl Wsp.BYTE_BITS) or u8(pdu, start + offset)
             return TypedValue(value, "", start + 1 + marker)
         }
         val text = readText(pdu, start, end)
@@ -283,8 +286,8 @@ object MmsRetrieveParser {
         val token = u8(pdu, valueStart)
         val address =
             when (token) {
-                0x81 -> ""
-                0x80 -> readEncoded(pdu, valueStart + 1, end).value
+                PduHeaders.FROM_INSERT_ADDRESS_TOKEN -> ""
+                PduHeaders.FROM_ADDRESS_PRESENT_TOKEN -> readEncoded(pdu, valueStart + 1, end).value
                 else -> readEncoded(pdu, valueStart, end).value
             }
         return Text(address, end)
@@ -297,7 +300,7 @@ object MmsRetrieveParser {
     ): Text {
         if (start >= end) return Text("", start)
         val marker = u8(pdu, start)
-        if (marker <= 31) {
+        if (marker <= Wsp.LENGTH_QUOTE) {
             val block = skipLength(pdu, start, end)
             val contents = lengthContents(pdu, start)
             val text = if (contents < block) readText(pdu, contents + 1, block) else Text("", block)
@@ -312,8 +315,8 @@ object MmsRetrieveParser {
         end: Int,
     ): Text {
         var i = start
-        if (i < end && u8(pdu, i) == 127) i += 1
-        if (i < end && u8(pdu, i) == 34) i += 1
+        if (i < end && u8(pdu, i) == Wsp.TEXT_QUOTE) i += 1
+        if (i < end && u8(pdu, i) == Wsp.QUOTED_STRING) i += 1
         val begin = i
         while (i < end && pdu[i].toInt() != 0) i += 1
         val value = pdu.copyOfRange(begin, i.coerceAtMost(end)).toString(Charsets.UTF_8)
@@ -329,7 +332,7 @@ object MmsRetrieveParser {
         val len = u8(pdu, start)
         if (start + 1 + len > limit) error("mms length")
         var value = 0L
-        for (offset in 1..len) value = (value shl 8) or u8(pdu, start + offset).toLong()
+        for (offset in 1..len) value = (value shl Wsp.BYTE_BITS) or u8(pdu, start + offset).toLong()
         return Number(value, start + 1 + len)
     }
 
@@ -341,8 +344,8 @@ object MmsRetrieveParser {
         if (start >= limit) return start
         val marker = u8(pdu, start)
         return when {
-            marker >= 0x80 -> start + 1
-            marker <= 31 -> skipLength(pdu, start, limit)
+            marker >= Wsp.SHORT_INTEGER -> start + 1
+            marker <= Wsp.LENGTH_QUOTE -> skipLength(pdu, start, limit)
             else -> readText(pdu, start, limit).next
         }
     }
@@ -355,11 +358,11 @@ object MmsRetrieveParser {
         val marker = u8(pdu, start)
         val end =
             when {
-                marker < 31 -> {
+                marker < Wsp.LENGTH_QUOTE -> {
                     start + 1 + marker
                 }
 
-                marker == 31 -> {
+                marker == Wsp.LENGTH_QUOTE -> {
                     val length = readUintvar(pdu, start + 1, limit)
                     val next = length.next.toLong() + length.value
                     if (next > Int.MAX_VALUE) error("mms length")
@@ -379,7 +382,7 @@ object MmsRetrieveParser {
         start: Int,
     ): Int {
         val marker = u8(pdu, start)
-        return if (marker == 31) readUintvar(pdu, start + 1, pdu.size).next else start + 1
+        return if (marker == Wsp.LENGTH_QUOTE) readUintvar(pdu, start + 1, pdu.size).next else start + 1
     }
 
     private fun readUintvar(
@@ -389,63 +392,70 @@ object MmsRetrieveParser {
     ): Number {
         var value = 0L
         var i = start
-        repeat(5) {
+        repeat(Wsp.UINTVAR_MAX_BYTES) {
             if (i >= limit) return Number(value, i)
             val byte = u8(pdu, i)
             i += 1
-            value = (value shl 7) or (byte and 0x7F).toLong()
-            if (byte and 0x80 == 0) return Number(value, i)
+            value = (value shl Wsp.UINTVAR_BITS) or (byte and Wsp.SHORT_INTEGER_MASK).toLong()
+            if (byte and Wsp.UINTVAR_CONTINUE == 0) return Number(value, i)
         }
         return Number(value, i)
     }
 
-    private fun mimeOf(index: Int): String =
-        when (index) {
-            0x03 -> "text/plain"
-            0x02 -> "text/html"
-            0x1C -> "image/*"
-            0x1D -> "image/gif"
-            0x1E -> "image/jpeg"
-            0x20 -> "image/png"
-            0x21 -> "image/vnd.wap.wbmp"
-            0x23 -> "application/vnd.wap.multipart.mixed"
-            0x33 -> "application/vnd.wap.multipart.related"
-            0x4F -> "audio/*"
-            0x50 -> "video/*"
-            else -> "application/octet-stream"
-        }
+    /** Well-known content types (WAP-230-WSP table 40) that MMS uses. */
+    private val wellKnownTypes =
+        mapOf(
+            0x02 to "text/html",
+            0x03 to "text/plain",
+            0x1C to "image/*",
+            0x1D to "image/gif",
+            0x1E to "image/jpeg",
+            0x20 to "image/png",
+            0x21 to "image/vnd.wap.wbmp",
+            0x23 to "application/vnd.wap.multipart.mixed",
+            0x33 to "application/vnd.wap.multipart.related",
+            0x4F to "audio/*",
+            0x50 to "video/*",
+        )
 
-    private const val UTF_8 = 106
+    private fun mimeOf(index: Int): String = wellKnownTypes[index] ?: "application/octet-stream"
+
+    private const val UTF_8 = CharacterSets.UTF_8
+    private const val MIN_PDU_SIZE = 4
+    private const val MAX_PARTS = 16L
+
+    /** ISO-8859-n has MIB number n + 3 for n in 1..9. */
+    private const val ISO_8859_MIB_OFFSET = 3
 
     private fun charsetFor(mib: Int): java.nio.charset.Charset =
         when (mib) {
-            3 -> {
+            CharacterSets.US_ASCII -> {
                 Charsets.US_ASCII
             }
 
-            in 4..12 -> {
+            in CharacterSets.ISO_8859_1..CharacterSets.ISO_8859_9 -> {
                 java.nio.charset.Charset
-                    .forName("ISO-8859-${mib - 3}")
+                    .forName("ISO-8859-${mib - ISO_8859_MIB_OFFSET}")
             }
 
-            17 -> {
+            CharacterSets.SHIFT_JIS -> {
                 java.nio.charset.Charset
                     .forName("Shift_JIS")
             }
 
-            106 -> {
+            CharacterSets.UTF_8 -> {
                 Charsets.UTF_8
             }
 
-            1000, 1013 -> {
+            CharacterSets.UCS2, Wsp.MIB_UTF_16BE -> {
                 Charsets.UTF_16BE
             }
 
-            1014 -> {
+            Wsp.MIB_UTF_16LE -> {
                 Charsets.UTF_16LE
             }
 
-            1015 -> {
+            CharacterSets.UTF_16 -> {
                 Charsets.UTF_16
             }
 
@@ -457,18 +467,18 @@ object MmsRetrieveParser {
     private fun mibForName(name: String): Int? {
         val clean = name.trim().lowercase().replace('_', '-')
         when (clean) {
-            "utf-8" -> return 106
-            "us-ascii", "ascii" -> return 3
-            "shift-jis" -> return 17
-            "utf-16" -> return 1015
-            "utf-16be" -> return 1013
-            "utf-16le" -> return 1014
-            "ucs-2", "iso-10646-ucs-2" -> return 1000
-            "latin-1", "latin1" -> return 4
+            "utf-8" -> return CharacterSets.UTF_8
+            "us-ascii", "ascii" -> return CharacterSets.US_ASCII
+            "shift-jis" -> return CharacterSets.SHIFT_JIS
+            "utf-16" -> return CharacterSets.UTF_16
+            "utf-16be" -> return Wsp.MIB_UTF_16BE
+            "utf-16le" -> return Wsp.MIB_UTF_16LE
+            "ucs-2", "iso-10646-ucs-2" -> return CharacterSets.UCS2
+            "latin-1", "latin1" -> return CharacterSets.ISO_8859_1
         }
         val iso = Regex("iso-8859-(\\d+)").matchEntire(clean) ?: return null
         val part = iso.groupValues[1].toIntOrNull() ?: return null
-        return if (part in 1..9) part + 3 else null
+        return if (part in 1..9) part + ISO_8859_MIB_OFFSET else null
     }
 
     private fun cleanAddress(raw: String): String = raw.substringBefore("/").trim().trim('<', '>')
@@ -478,6 +488,6 @@ object MmsRetrieveParser {
         index: Int,
     ): Int {
         if (index < 0 || index >= pdu.size) error("mms pdu ended early")
-        return pdu[index].toInt() and 0xFF
+        return pdu[index].toInt() and Wsp.BYTE_MASK
     }
 }
