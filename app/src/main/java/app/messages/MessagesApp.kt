@@ -45,7 +45,7 @@ class MessagesApp : LanTextApp() {
         local = LocalStore(this)
         messaging = MessagingRepository(this, local)
         val staleBackup = java.io.File(cacheDir, "messages-backup.json")
-        if (staleBackup.isFile && System.currentTimeMillis() - staleBackup.lastModified() > 120_000) {
+        if (staleBackup.isFile && System.currentTimeMillis() - staleBackup.lastModified() > STALE_BACKUP_MS) {
             staleBackup.delete()
         }
         phoneDesktop = phoneDesktopBridge()
@@ -94,7 +94,7 @@ class MessagesApp : LanTextApp() {
             PhoneWeb(
                 palette = palette,
                 mode = mode,
-                fontScale = persisted.fontScale.coerceIn(0.85f, 1.4f),
+                fontScale = persisted.fontScale.coerceIn(MIN_FONT_SCALE, MAX_FONT_SCALE),
                 striped = persisted.stripedInbox,
                 searchAtBottom = persisted.searchAtBottom,
                 enterSends = persisted.enterSends,
@@ -171,3 +171,8 @@ class MessagesApp : LanTextApp() {
         fun from(context: Context): MessagesApp = context.applicationContext as MessagesApp
     }
 }
+
+/** A backup file older than this was left by an export that did not finish. */
+private const val STALE_BACKUP_MS = 120_000L
+private const val MIN_FONT_SCALE = 0.85f
+private const val MAX_FONT_SCALE = 1.4f

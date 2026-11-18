@@ -20,7 +20,7 @@ object MessageLinks {
             .mapNotNull { match ->
                 val raw = match.groupValues[1]
                 val trimmed = raw.replace(trailing, "")
-                if (trimmed.length < 8) return@mapNotNull null
+                if (trimmed.length < MIN_LINK_LENGTH) return@mapNotNull null
                 val start = match.range.first
                 Hit(start, start + trimmed.length, trimmed)
             }.toList()
@@ -33,3 +33,6 @@ object MessageLinks {
         return rest.removePrefix("www.").ifBlank { "link" }
     }
 }
+
+/** Shorter than "http://a" is not a link. */
+private const val MIN_LINK_LENGTH = 8

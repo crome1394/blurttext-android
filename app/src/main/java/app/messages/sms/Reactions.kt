@@ -57,8 +57,8 @@ fun tapbackQuote(body: String): String? {
             .replace("\"", "")
             .trim()
     if (trimmed.isEmpty()) return null
-    if (trimmed.length <= 80) return trimmed
-    return trimmed.take(80).trimEnd() + "…"
+    if (trimmed.length <= QUOTE_MAX_CHARS) return trimmed
+    return trimmed.take(QUOTE_MAX_CHARS).trimEnd() + "…"
 }
 
 data class ReactionLayout(
@@ -286,7 +286,7 @@ private fun quoteMatches(
         lead && !tail -> hay.endsWith(needle)
         tail && !lead -> hay.startsWith(needle)
         lead && tail -> hay.contains(needle)
-        else -> needle.length >= 12 && hay.contains(needle)
+        else -> needle.length >= MIN_PARTIAL_MATCH && hay.contains(needle)
     }
 }
 
@@ -296,3 +296,8 @@ private fun normalizeQuote(value: String): String =
         .replace('\u2018', '\'')
         .replace(Regex("\\s+"), " ")
         .trim()
+
+private const val QUOTE_MAX_CHARS = 80
+
+/** A quoted message this long can match the original by substring. */
+private const val MIN_PARTIAL_MATCH = 12

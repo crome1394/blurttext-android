@@ -8,7 +8,7 @@ import android.provider.Telephony
 object SmsRole {
     fun isDefault(context: Context): Boolean {
         if (Telephony.Sms.getDefaultSmsPackage(context) == context.packageName) return true
-        if (Build.VERSION.SDK_INT >= 29) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val roles = context.getSystemService(RoleManager::class.java)
             if (roles != null && roles.isRoleHeld(RoleManager.ROLE_SMS)) return true
         }
@@ -32,10 +32,12 @@ object IncomingDedup {
         val next = address + "\n" + body
         val now = System.currentTimeMillis()
         synchronized(this) {
-            if (next == key && now - at < 8_000) return false
+            if (next == key && now - at < REPEAT_WINDOW_MS) return false
             key = next
             at = now
             return true
         }
     }
 }
+
+private const val REPEAT_WINDOW_MS = 8_000L

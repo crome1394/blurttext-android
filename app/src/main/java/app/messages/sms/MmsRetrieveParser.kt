@@ -478,7 +478,7 @@ object MmsRetrieveParser {
         }
         val iso = Regex("iso-8859-(\\d+)").matchEntire(clean) ?: return null
         val part = iso.groupValues[1].toIntOrNull() ?: return null
-        return if (part in 1..9) part + ISO_8859_MIB_OFFSET else null
+        return if (part in ISO_8859_PARTS) part + ISO_8859_MIB_OFFSET else null
     }
 
     private fun cleanAddress(raw: String): String = raw.substringBefore("/").trim().trim('<', '>')
@@ -491,3 +491,6 @@ object MmsRetrieveParser {
         return pdu[index].toInt() and Wsp.BYTE_MASK
     }
 }
+
+/** ISO-8859 parts with a MIB number in CharacterSets. */
+private val ISO_8859_PARTS = 1..9

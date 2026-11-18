@@ -169,7 +169,7 @@ object SendPipeline {
         if (wire.isEmpty()) error("Add a recipient.")
         val req = SendReq()
         for (to in wire) req.addTo(EncodedStringValue(to))
-        req.setDate(System.currentTimeMillis() / 1000)
+        req.setDate(nowSeconds())
         val textBytes = body.toByteArray(Charsets.UTF_8)
         val smilBytes = TEXT_SMIL.toByteArray(Charsets.UTF_8)
         val pduBody = PduBody()
@@ -191,7 +191,7 @@ object SendPipeline {
         req.setBody(pduBody)
         req.setMessageSize((textBytes.size + smilBytes.size).toLong())
         req.setMessageClass(PduHeaders.MESSAGE_CLASS_PERSONAL_STR.toByteArray())
-        req.setExpiry(7 * 24 * 60 * 60)
+        req.setExpiry(TimeUnit.DAYS.toSeconds(MMS_EXPIRY_DAYS))
         try {
             req.setPriority(PduHeaders.PRIORITY_NORMAL)
             req.setDeliveryReport(if (deliveryReports) PduHeaders.VALUE_YES else PduHeaders.VALUE_NO)
@@ -226,7 +226,7 @@ object SendPipeline {
         }
         val waiter = MmsSentReceiver.register(fileName)
         var flags = PendingIntent.FLAG_UPDATE_CURRENT
-        if (Build.VERSION.SDK_INT >= 31) flags = flags or PendingIntent.FLAG_MUTABLE
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) flags = flags or PendingIntent.FLAG_MUTABLE
         val sent =
             PendingIntent.getBroadcast(
                 context,
@@ -235,7 +235,7 @@ object SendPipeline {
                 flags,
             )
         manager.sendMultimediaMessage(context, contentUri, null, null, sent)
-        val finished = waiter.latch.await(30, TimeUnit.SECONDS)
+        val finished = waiter.latch.await(MMS_SEND_TIMEOUT_S, TimeUnit.SECONDS)
         if (!finished) error("The MMS is still sending. Leave mobile data on and try again.")
         if (waiter.code.get() != Activity.RESULT_OK) {
             error("Could not send the MMS (error ${waiter.code.get()}). Mobile data has to be on.")
@@ -247,7 +247,7 @@ object SendPipeline {
         threadId: Long,
         body: String,
     ): Boolean {
-        val since = (System.currentTimeMillis() / 1000) - if (body.isBlank()) 20 else 180
+        val since = nowSeconds() - if (body.isBlank()) MEDIA_ECHO_WINDOW_S else TEXT_ECHO_WINDOW_S
         val ids = mutableListOf<Long>()
         context.contentResolver
             .query(
@@ -262,7 +262,7 @@ object SendPipeline {
             }
         if (ids.isEmpty()) return false
         if (body.isBlank()) return ids.any { mmsHasMedia(context, it) }
-        val needle = body.take(80)
+        val needle = body.take(ECHO_NEEDLE_LENGTH)
         return ids.any { mmsText(context, it).contains(needle) }
     }
 
@@ -326,11 +326,11 @@ object SendPipeline {
         val values =
             ContentValues().apply {
                 put(Telephony.Mms.THREAD_ID, threadId)
-                put(Telephony.Mms.DATE, System.currentTimeMillis() / 1000)
+                put(Telephony.Mms.DATE, nowSeconds())
                 put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_SENT)
                 put(Telephony.Mms.READ, 1)
                 put(Telephony.Mms.SEEN, 1)
-                put(Telephony.Mms.MESSAGE_TYPE, 128)
+                put(Telephony.Mms.MESSAGE_TYPE, PduHeaders.MESSAGE_TYPE_SEND_REQ)
                 put(Telephony.Mms.CONTENT_TYPE, "application/vnd.wap.multipart.related")
                 put(Telephony.Mms.TEXT_ONLY, if (attachment == null) 1 else 0)
                 put(Telephony.Mms.MESSAGE_SIZE, attachment?.size ?: body.length)
@@ -344,8 +344,8 @@ object SendPipeline {
             val addr =
                 ContentValues().apply {
                     put(Telephony.Mms.Addr.ADDRESS, address)
-                    put(Telephony.Mms.Addr.TYPE, 151)
-                    put(Telephony.Mms.Addr.CHARSET, 106)
+                    put(Telephony.Mms.Addr.TYPE, PduHeaders.TO)
+                    put(Telephony.Mms.Addr.CHARSET, CharacterSets.UTF_8)
                 }
             context.contentResolver.insert(Uri.parse("content://mms/$id/addr"), addr)
         }
@@ -353,7 +353,7 @@ object SendPipeline {
             val part =
                 ContentValues().apply {
                     put(Telephony.Mms.Part.CONTENT_TYPE, "text/plain")
-                    put(Telephony.Mms.Part.CHARSET, 106)
+                    put(Telephony.Mms.Part.CHARSET, CharacterSets.UTF_8)
                     put(Telephony.Mms.Part.TEXT, body)
                     put(Telephony.Mms.Part.CONTENT_LOCATION, "text_0.txt")
                 }
@@ -400,13 +400,23 @@ object SendPipeline {
         val base = context.getSystemService(SmsManager::class.java) ?: SmsManager.getDefault()
         val id = subId ?: SubscriptionManager.getDefaultSmsSubscriptionId()
         if (id == SubscriptionManager.INVALID_SUBSCRIPTION_ID) return base
-        return if (Build.VERSION.SDK_INT >= 31) {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             base.createForSubscriptionId(id)
         } else {
             @Suppress("DEPRECATION")
             SmsManager.getSmsManagerForSubscriptionId(id)
         }
     }
+
+    private const val MMS_EXPIRY_DAYS = 7L
+    private const val MMS_SEND_TIMEOUT_S = 30L
+
+    /** How far back a just-sent MMS can be found in the provider, by whether it has text. */
+    private const val MEDIA_ECHO_WINDOW_S = 20L
+    private const val TEXT_ECHO_WINDOW_S = 180L
+    private const val ECHO_NEEDLE_LENGTH = 80
+
+    private fun nowSeconds(): Long = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis())
 
     private const val TEXT_SMIL =
         """<smil><head><layout><root-layout width="320px" height="480px"/><region id="Text" top="0" left="0" height="100%" fit="scroll"/></layout></head><body><par dur="5000ms"><text src="text_0.txt" region="Text"/></par></body></smil>"""

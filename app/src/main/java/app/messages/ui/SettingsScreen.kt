@@ -352,6 +352,27 @@ private val settingTabs =
         "About",
     )
 
+/** Extra words each settings tab answers to in the settings search, in tab order. */
+private val tabSearchWords =
+    listOf(
+        "computer default sms search at the bottom wifi delete old conversations days duration " +
+            "group conversations read unread received date sms mms pinned delete trash permanently",
+        "theme system light dark color palette dynamic wallpaper alternating threads text size small normal large extra " +
+            "app icon launcher original black cyan dark blue dark purple dark red green light blue orange purple red white " +
+            "yellow fern ocean dusk ember slate sakura meadow nord contrast",
+        "enter key sends delivery reports exact alarms scheduled",
+        "default sim carrier indicator sent received name number time message type sms mms system",
+        "show message text lock screen notification",
+        "keyword filter blocked numbers phrase",
+        "klipy api key partner gif",
+        "export import texts json backup",
+        "right swipe left swipe change mark as read unread delete none thread trash",
+        "ribbon pin unpin mark as read mark as unread delete block archive show hide drag move to the top selected arrangement",
+        "footer height search settings computer filter trash icon show hide",
+        "blurttext wifi port paired devices web access networks listen",
+        "version blurttext computer access github apache license apk download",
+    )
+
 private fun tabMatches(
     index: Int,
     query: String,
@@ -360,67 +381,7 @@ private fun tabMatches(
     if (q.isEmpty()) return true
     val title = settingTabs.getOrNull(index).orEmpty()
     if (title.contains(q, ignoreCase = true)) return true
-    val blob =
-        when (index) {
-            0 -> {
-                "computer default sms search at the bottom wifi delete old conversations days duration " +
-                    "group conversations read unread received date sms mms pinned delete trash permanently"
-            }
-
-            1 -> {
-                "theme system light dark color palette dynamic wallpaper alternating threads text size small normal large extra " +
-                    "app icon launcher original black cyan dark blue dark purple dark red green light blue orange purple red white " +
-                    "yellow fern ocean dusk ember slate sakura meadow nord contrast"
-            }
-
-            2 -> {
-                "enter key sends delivery reports exact alarms scheduled"
-            }
-
-            3 -> {
-                "default sim carrier indicator sent received name number time message type sms mms system"
-            }
-
-            4 -> {
-                "show message text lock screen notification"
-            }
-
-            5 -> {
-                "keyword filter blocked numbers phrase"
-            }
-
-            6 -> {
-                "klipy api key partner gif"
-            }
-
-            7 -> {
-                "export import texts json backup"
-            }
-
-            8 -> {
-                "right swipe left swipe change mark as read unread delete none thread trash"
-            }
-
-            9 -> {
-                "ribbon pin unpin mark as read mark as unread delete block archive show hide drag move to the top selected arrangement"
-            }
-
-            10 -> {
-                "footer height search settings computer filter trash icon show hide"
-            }
-
-            11 -> {
-                "blurttext wifi port paired devices web access networks listen"
-            }
-
-            12 -> {
-                "version blurttext computer access github apache license apk download"
-            }
-
-            else -> {
-                ""
-            }
-        }
+    val blob = tabSearchWords.getOrElse(index) { "" }
     return blob.contains(q, ignoreCase = true)
 }
 

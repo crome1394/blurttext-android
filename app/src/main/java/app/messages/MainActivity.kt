@@ -45,7 +45,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestRole() {
-        if (Build.VERSION.SDK_INT >= 29) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val roles = getSystemService(RoleManager::class.java)
             if (roles.isRoleAvailable(RoleManager.ROLE_SMS) && !roles.isRoleHeld(RoleManager.ROLE_SMS)) {
                 roleLauncher.launch(roles.createRequestRoleIntent(RoleManager.ROLE_SMS))
@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
 
     private fun requestRemaining() {
         val needed = mutableListOf<String>()
-        if (Build.VERSION.SDK_INT >= 33) needed += Manifest.permission.POST_NOTIFICATIONS
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) needed += Manifest.permission.POST_NOTIFICATIONS
         needed += Manifest.permission.READ_CONTACTS
         needed += Manifest.permission.READ_PHONE_STATE
         needed += Manifest.permission.READ_PHONE_NUMBERS

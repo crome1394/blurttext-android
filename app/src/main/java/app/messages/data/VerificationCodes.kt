@@ -57,7 +57,7 @@ object VerificationCodes {
             if (end < text.length && text[end] == '-') continue
             if (localPhone.matches(match.value)) continue
             val digits = match.groupValues[1] + match.groupValues[2]
-            if (digits.length !in 4..8) continue
+            if (digits.length !in CODE_LENGTHS) continue
             add(digits, start, end)
         }
         for (match in plain.findAll(text)) {
@@ -78,7 +78,12 @@ object VerificationCodes {
                     if (gap > WINDOW) null else hit to gap
                 }
             if (near.isEmpty()) continue
-            return near.minWith(compareBy({ it.second }, { kotlin.math.abs(it.first.code.length - 6) }, { it.first.start })).first.code
+            return near
+                .minWith(
+                    compareBy({
+                        it.second
+                    }, { kotlin.math.abs(it.first.code.length - TYPICAL_CODE_LENGTH) }, { it.first.start }),
+                ).first.code
         }
         return null
     }
@@ -108,20 +113,20 @@ object VerificationCodes {
         keys: List<Pair<Int, Int>>,
     ): Boolean {
         if (isCalendarStamp(code)) return false
-        if (code.length != 4) return true
+        if (code.length != YEAR_LENGTH) return true
         val year = code.toIntOrNull() ?: return true
-        if (year !in 1900..2099) return true
+        if (year !in PLAUSIBLE_YEARS) return true
         val key = keys.filter { it.second <= start }.minByOrNull { start - it.second } ?: return false
         val between = text.substring(key.second, start)
-        return between.length <= 12 && yearFiller.matches(between)
+        return between.length <= YEAR_KEY_GAP && yearFiller.matches(between)
     }
 
     private fun isCalendarStamp(code: String): Boolean {
-        if (code.length != 8 || !code.all { it.isDigit() }) return false
-        val year = code.substring(0, 4).toIntOrNull() ?: return false
-        val month = code.substring(4, 6).toIntOrNull() ?: return false
-        val day = code.substring(6, 8).toIntOrNull() ?: return false
-        return year in 1900..2099 && month in 1..12 && day in 1..31
+        if (code.length != DATE_STAMP_LENGTH || !code.all { it.isDigit() }) return false
+        val year = code.substring(0, YEAR_LENGTH).toIntOrNull() ?: return false
+        val month = code.substring(YEAR_LENGTH, MONTH_END).toIntOrNull() ?: return false
+        val day = code.substring(MONTH_END, DATE_STAMP_LENGTH).toIntOrNull() ?: return false
+        return year in PLAUSIBLE_YEARS && month in MONTHS && day in DAYS
     }
 
     private fun isMoney(
@@ -138,7 +143,7 @@ object VerificationCodes {
         if (end < text.length && text[end] == '.') {
             val cents =
                 end + 2 < text.length && text[end + 1].isDigit() && text[end + 2].isDigit() &&
-                    (end + 3 >= text.length || !text[end + 3].isDigit())
+                    (end + CENTS_DIGITS + 1 >= text.length || !text[end + CENTS_DIGITS + 1].isDigit())
             if (cents) return true
         }
         return false
@@ -164,8 +169,8 @@ object VerificationCodes {
         val digits = raw.count { it.isDigit() }
         // 800-555 inside 1-800-555-0199 is only a slice. A code that is the whole run is kept.
         if (phoneSpanDigits(text, start, end) > digits) return true
-        if (digits < 7) return false
-        val prefix = text.substring((start - 12).coerceAtLeast(0), start)
+        if (digits < MIN_PHONE_DIGITS) return false
+        val prefix = text.substring((start - AREA_LOOKBACK).coerceAtLeast(0), start)
         return areaBefore.containsMatchIn(prefix)
     }
 
@@ -182,4 +187,21 @@ object VerificationCodes {
         while (b < text.length && text[b] in phone) b++
         return text.substring(a, b).count { it.isDigit() }
     }
+
+    private const val TYPICAL_CODE_LENGTH = 6
+    private const val YEAR_LENGTH = 4
+    private const val MONTH_END = 6
+    private const val DATE_STAMP_LENGTH = 8
+
+    /** A year this close after a keyword ("code 2024") is filler, not a code. */
+    private const val YEAR_KEY_GAP = 12
+    private const val CENTS_DIGITS = 2
+    private const val MIN_PHONE_DIGITS = 7
+
+    /** How far back to look for an area code before a number. */
+    private const val AREA_LOOKBACK = 12
+    private val CODE_LENGTHS = 4..8
+    private val PLAUSIBLE_YEARS = 1900..2099
+    private val MONTHS = 1..12
+    private val DAYS = 1..31
 }

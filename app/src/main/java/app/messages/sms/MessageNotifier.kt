@@ -137,10 +137,17 @@ object MessageNotifier {
         context.getSystemService(NotificationManager::class.java).notify(notificationId, notification)
     }
 
-    fun statusId(key: String): Int = (key.hashCode() and 0x7fffffff) % 80 + 10
+    fun statusId(key: String): Int = (key.hashCode() and Int.MAX_VALUE) % STATUS_ID_SPAN + STATUS_ID_BASE
 
     private fun notificationId(threadId: Long): Int {
-        val mixed = (threadId xor (threadId ushr 32)).toInt() and 0x7fffffff
-        return if (mixed < 100) mixed + 100 else mixed
+        val mixed = (threadId xor (threadId ushr Int.SIZE_BITS)).toInt() and Int.MAX_VALUE
+        return if (mixed < THREAD_ID_FLOOR) mixed + THREAD_ID_FLOOR else mixed
     }
 }
+
+/** Send-status notifications use ids 10..89 so they never collide with a thread's id. */
+private const val STATUS_ID_BASE = 10
+private const val STATUS_ID_SPAN = 80
+
+/** Thread notifications start here, above the status ids. */
+private const val THREAD_ID_FLOOR = 100

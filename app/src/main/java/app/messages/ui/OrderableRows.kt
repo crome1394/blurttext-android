@@ -149,8 +149,8 @@ internal fun reorderSlots(
     val whole = rows.toInt()
     val fraction = rows - whole
     return when {
-        fraction >= 0.5f -> whole + 1
-        fraction <= -0.5f -> whole - 1
+        fraction >= HALF_SLOT -> whole + 1
+        fraction <= -HALF_SLOT -> whole - 1
         else -> whole
     }
 }
@@ -210,3 +210,6 @@ private fun reorderGrabHaptic(): Int =
     } else {
         HapticFeedbackConstants.CLOCK_TICK
     }
+
+/** A dragged row moves to the next slot once it is half way there. */
+private const val HALF_SLOT = 0.5f

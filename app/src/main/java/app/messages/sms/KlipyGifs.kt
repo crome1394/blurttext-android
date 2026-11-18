@@ -26,7 +26,7 @@ object KlipyGifs {
     ): ByteArray = GifSearch.download(url, maxBytes)
 
     fun isGif(bytes: ByteArray): Boolean =
-        bytes.size >= 6 && bytes[0] == 'G'.code.toByte() && bytes[1] == 'I'.code.toByte() && bytes[2] == 'F'.code.toByte()
+        bytes.size >= GIF_HEADER_LENGTH && bytes[0] == 'G'.code.toByte() && bytes[1] == 'I'.code.toByte() && bytes[2] == 'F'.code.toByte()
 
     fun isAllowed(url: String): Boolean = GifSearch.isAllowed(url)
 
@@ -43,3 +43,6 @@ object KlipyGifs {
             bytes = bytes,
         )
 }
+
+/** "GIF87a" or "GIF89a". */
+private const val GIF_HEADER_LENGTH = 6

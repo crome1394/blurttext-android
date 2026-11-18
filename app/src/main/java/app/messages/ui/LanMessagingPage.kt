@@ -91,14 +91,17 @@ private fun neededPermissions(): List<String> {
             Manifest.permission.READ_CONTACTS,
             Manifest.permission.WRITE_CONTACTS,
         )
-    if (Build.VERSION.SDK_INT >= 33) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         needed += Manifest.permission.POST_NOTIFICATIONS
         needed += Manifest.permission.NEARBY_WIFI_DEVICES
     }
-    if (Build.VERSION.SDK_INT >= 37) {
+    if (Build.VERSION.SDK_INT >= API_ANDROID_17) {
         needed += WifiGate.PERMISSION_ACCESS_LOCAL_NETWORK
     }
     needed += Manifest.permission.ACCESS_COARSE_LOCATION
     needed += Manifest.permission.ACCESS_FINE_LOCATION
     return needed
 }
+
+/** Android 17, which adds ACCESS_LOCAL_NETWORK. Not in the SDK 36 stubs. */
+private const val API_ANDROID_17 = 37

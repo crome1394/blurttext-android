@@ -100,8 +100,8 @@ private fun decodeAvatar(
     if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
     var sample = 1
     val edge = max(bounds.outWidth, bounds.outHeight)
-    val goal = targetPx.coerceAtLeast(48)
-    while (sample < 32 && edge / sample > goal * 2) sample *= 2
+    val goal = targetPx.coerceAtLeast(MIN_THUMB_PX)
+    while (sample < MAX_SAMPLE_SIZE && edge / sample > goal * 2) sample *= 2
     val opts =
         BitmapFactory.Options().apply {
             inSampleSize = sample
@@ -109,3 +109,6 @@ private fun decodeAvatar(
         }
     return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)?.asImageBitmap()
 }
+
+private const val MIN_THUMB_PX = 48
+private const val MAX_SAMPLE_SIZE = 32

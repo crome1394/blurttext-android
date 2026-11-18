@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.util.concurrent.TimeUnit
 
 private val Context.messagesStore by preferencesDataStore(name = "messages-local")
 
@@ -184,7 +185,7 @@ fun moveRibbonItem(
     return next
 }
 
-fun ribbonTopCount(raw: Int): Int = raw.coerceIn(1, 5)
+fun ribbonTopCount(raw: Int): Int = raw.coerceIn(1, RIBBON_TOP_MAX)
 
 val footerActionIds = listOf("search", "settings", "computer", "filter", "trash")
 
@@ -207,7 +208,7 @@ fun resolvedFooter(saved: List<RibbonItem>): List<RibbonItem> {
     return known + missing
 }
 
-fun coerceTrashDays(raw: Int): Int = raw.coerceIn(1, 3650)
+fun coerceTrashDays(raw: Int): Int = raw.coerceIn(1, TRASH_DAYS_MAX)
 
 /**
  * Keeps Trash in step with the inbox.
@@ -233,7 +234,7 @@ fun reconcileTrash(
             conversation.timestamp <= entry.trashedAt
         }
     if (!autoEnabled) return kept
-    val cutoff = now - coerceTrashDays(days).toLong() * 86_400_000L
+    val cutoff = now - TimeUnit.DAYS.toMillis(coerceTrashDays(days).toLong())
     val already = kept.map { it.threadId }.toSet()
     val add =
         conversations.mapNotNull { conversation ->
@@ -258,7 +259,7 @@ fun trashDueForDeletion(
     openThreadId: Long = -1L,
 ): Set<Long> {
     if (!enabled || trash.isEmpty()) return emptySet()
-    val cutoff = now - coerceTrashDays(days).toLong() * 86_400_000L
+    val cutoff = now - TimeUnit.DAYS.toMillis(coerceTrashDays(days).toLong())
     return trash
         .mapNotNull { entry ->
             if (entry.threadId == openThreadId) return@mapNotNull null
@@ -267,16 +268,16 @@ fun trashDueForDeletion(
         }.toSet()
 }
 
-fun footerHeightDp(raw: Int): Int = raw.coerceIn(48, 96)
+fun footerHeightDp(raw: Int): Int = raw.coerceIn(FOOTER_MIN_DP, FOOTER_MAX_DP)
 
 /** Icon button size for a footer of [height] dp. Taller footers get larger icons. */
-fun footerButtonDp(height: Int): Int = (footerHeightDp(height) * 0.78f).toInt().coerceIn(40, 76)
+fun footerButtonDp(height: Int): Int = (footerHeightDp(height) * FOOTER_BUTTON_SHARE).toInt().coerceIn(FOOTER_BUTTON_DP)
 
 /** Glyph size inside [footerButtonDp]. */
-fun footerGlyphDp(height: Int): Int = (footerButtonDp(height) * 0.52f).toInt().coerceIn(22, 40)
+fun footerGlyphDp(height: Int): Int = (footerButtonDp(height) * FOOTER_GLYPH_SHARE).toInt().coerceIn(FOOTER_GLYPH_DP)
 
 /** A horizontal swipe commits once it has crossed about a quarter of the row. */
-fun swipeCommitPx(widthPx: Float): Float = widthPx * 0.25f
+fun swipeCommitPx(widthPx: Float): Float = widthPx * SWIPE_COMMIT_SHARE
 
 /** A read thread offers unread. An unread thread offers read. */
 fun swipeReadUnreadLabel(unread: Boolean): String = if (unread) "Mark as read" else "Mark as unread"
@@ -295,7 +296,7 @@ fun swipeRevealReady(
     slop: Float,
     armMs: Long = SWIPE_ARM_MS,
 ): Boolean {
-    val pastSlop = kotlin.math.abs(travelX) > slop * 3f || kotlin.math.abs(travelY) > slop * 3f
+    val pastSlop = kotlin.math.abs(travelX) > slop * SLOP_FACTOR || kotlin.math.abs(travelY) > slop * SLOP_FACTOR
     if (!pastSlop) return false
     if (kotlin.math.abs(travelX) <= kotlin.math.abs(travelY) * 2f) return false
     return elapsedMs >= armMs
@@ -321,3 +322,18 @@ fun sameRecipients(
             .sorted()
     return key(left) == key(right)
 }
+
+private const val RIBBON_TOP_MAX = 5
+private const val TRASH_DAYS_MAX = 3650
+private const val FOOTER_MIN_DP = 48
+private const val FOOTER_MAX_DP = 96
+private const val FOOTER_BUTTON_SHARE = 0.78f
+private const val FOOTER_GLYPH_SHARE = 0.52f
+
+/** A swipe commits once the row has crossed a quarter of the screen. */
+private const val SWIPE_COMMIT_SHARE = 0.25f
+
+/** Sideways travel must pass this many touch slops before the row moves. */
+private const val SLOP_FACTOR = 3f
+private val FOOTER_BUTTON_DP = 40..76
+private val FOOTER_GLYPH_DP = 22..40

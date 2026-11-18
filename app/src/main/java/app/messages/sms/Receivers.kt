@@ -385,7 +385,7 @@ internal fun smsManager(
 ): SmsManager {
     val base = context.getSystemService(SmsManager::class.java) ?: SmsManager.getDefault()
     if (subId == SubscriptionManager.INVALID_SUBSCRIPTION_ID || subId < 0) return base
-    return if (Build.VERSION.SDK_INT >= 31) {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         base.createForSubscriptionId(subId)
     } else {
         @Suppress("DEPRECATION")

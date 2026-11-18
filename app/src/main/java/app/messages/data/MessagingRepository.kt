@@ -36,6 +36,8 @@ import app.messages.sms.cleanMmsAddress
 import app.messages.sms.inboxSnippet
 import app.messages.sms.placeGroup
 import app.messages.sms.sameAddress
+import com.google.android.mms.pdu_alt.CharacterSets
+import com.google.android.mms.pdu_alt.PduHeaders
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -51,6 +53,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.util.HashSet
+import java.util.concurrent.TimeUnit
 
 class MessagingRepository(
     private val context: Context,
@@ -92,7 +95,7 @@ class MessagingRepository(
 
     fun ping() {
         main.removeCallbacks(pingRunnable)
-        main.postDelayed(pingRunnable, 120)
+        main.postDelayed(pingRunnable, PING_DEBOUNCE_MS)
     }
 
     private val pingRunnable =
@@ -537,7 +540,7 @@ class MessagingRepository(
      */
     fun repairGroupThreads() {
         try {
-            val since = (System.currentTimeMillis() / 1000) - 90L * 24 * 60 * 60
+            val since = nowSeconds() - TimeUnit.DAYS.toSeconds(GROUP_REPAIR_DAYS)
             val ids = mutableListOf<Long>()
             context.contentResolver
                 .query(
@@ -550,9 +553,9 @@ class MessagingRepository(
                     val idCol = cursor.getColumnIndex(Telephony.Mms._ID)
                     val typeCol = cursor.getColumnIndex(Telephony.Mms.MESSAGE_TYPE)
                     if (idCol < 0) return@use
-                    while (cursor.moveToNext() && ids.size < 400) {
+                    while (cursor.moveToNext() && ids.size < GROUP_REPAIR_MAX_MMS) {
                         val type = if (typeCol >= 0) cursor.getInt(typeCol) else 0
-                        if (type == 130) continue
+                        if (type == PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND) continue
                         ids += cursor.getLong(idCol)
                     }
                 }
@@ -619,7 +622,7 @@ class MessagingRepository(
                 val number = cursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER)
                 val thumb = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.PHOTO_THUMBNAIL_URI)
                 val photo = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.PHOTO_URI)
-                while (cursor.moveToNext() && out.size < 8) {
+                while (cursor.moveToNext() && out.size < CONTACT_MATCH_LIMIT) {
                     val thumbnail = if (thumb >= 0) cursor.getString(thumb) else null
                     val full = if (photo >= 0) cursor.getString(photo) else null
                     out +=
@@ -657,14 +660,14 @@ class MessagingRepository(
                 val body = cursor.getColumnIndexOrThrow(Telephony.Sms.BODY)
                 val date = cursor.getColumnIndexOrThrow(Telephony.Sms.DATE)
                 var count = 0
-                while (cursor.moveToNext() && count < 60) {
+                while (cursor.moveToNext() && count < SEARCH_SMS_LIMIT) {
                     val id = cursor.getLong(thread)
                     val conversation = byId[id] ?: continue
                     hits += SearchHit(id, conversation.title, cursor.getString(body).orEmpty(), cursor.getLong(date))
                     count += 1
                 }
             }
-        return hits.distinctBy { "${it.threadId}:${it.snippet}" }.take(80)
+        return hits.distinctBy { "${it.threadId}:${it.snippet}" }.take(SEARCH_HIT_LIMIT)
     }
 
     fun loadPart(partId: Long): ByteArray? =
@@ -823,15 +826,15 @@ class MessagingRepository(
                         existing = ContentUris.withAppendedId(Telephony.Mms.CONTENT_URI, cursor.getLong(0))
                     }
                 }
-            if (existing != null) return if (existingType == 130) existing else null
+            if (existing != null) return if (existingType == PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND) existing else null
         }
         val values =
             ContentValues().apply {
-                put(Telephony.Mms.DATE, System.currentTimeMillis() / 1000)
+                put(Telephony.Mms.DATE, nowSeconds())
                 put(Telephony.Mms.READ, 0)
                 put(Telephony.Mms.SEEN, 0)
-                put(Telephony.Mms.MESSAGE_TYPE, 130)
-                put(Telephony.Mms.MMS_VERSION, 18)
+                put(Telephony.Mms.MESSAGE_TYPE, PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND)
+                put(Telephony.Mms.MMS_VERSION, PduHeaders.MMS_VERSION_1_2)
                 put(Telephony.Mms.CONTENT_LOCATION, notification.contentLocation)
                 put(Telephony.Mms.TRANSACTION_ID, notification.transactionId)
                 if (notification.size > 0) put(Telephony.Mms.MESSAGE_SIZE, notification.size.toInt())
@@ -851,8 +854,8 @@ class MessagingRepository(
             val addr =
                 ContentValues().apply {
                     put(Telephony.Mms.Addr.ADDRESS, storedFrom)
-                    put(Telephony.Mms.Addr.TYPE, 137)
-                    put(Telephony.Mms.Addr.CHARSET, 106)
+                    put(Telephony.Mms.Addr.TYPE, PduHeaders.FROM)
+                    put(Telephony.Mms.Addr.CHARSET, CharacterSets.UTF_8)
                 }
             context.contentResolver.insert(Uri.parse("content://mms/$id/addr"), addr)
         }
@@ -860,7 +863,7 @@ class MessagingRepository(
     }
 
     fun pendingMmsNotifications(): List<PendingMms> {
-        val since = (System.currentTimeMillis() / 1000) - 3 * 24 * 60 * 60
+        val since = nowSeconds() - TimeUnit.DAYS.toSeconds(PENDING_MMS_DAYS)
         val out = mutableListOf<PendingMms>()
         context.contentResolver
             .query(
@@ -873,7 +876,7 @@ class MessagingRepository(
                     Telephony.Mms.SUBSCRIPTION_ID,
                 ),
                 "${Telephony.Mms.MESSAGE_TYPE}=? AND ${Telephony.Mms.DATE}>=?",
-                arrayOf("130", since.toString()),
+                arrayOf(PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND.toString(), since.toString()),
                 null,
             )?.use { cursor ->
                 val idCol = cursor.getColumnIndex(Telephony.Mms._ID)
@@ -886,7 +889,7 @@ class MessagingRepository(
                     val id = cursor.getLong(idCol)
                     val type = cursor.getInt(typeCol)
                     val whenSec = cursor.getLong(dateCol)
-                    if (type != 130 || whenSec < since) continue
+                    if (type != PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND || whenSec < since) continue
                     val location = cursor.getString(locationCol).orEmpty()
                     if (location.isBlank()) continue
                     val parts = mmsParts(id)
@@ -939,8 +942,8 @@ class MessagingRepository(
                 part.name
                     .substringAfterLast('/')
                     .substringAfterLast('\\')
-                    .filter { it.code in 32..126 }
-                    .take(40)
+                    .filter { it.code in PRINTABLE_ASCII }
+                    .take(PART_NAME_MAX)
                     .ifBlank { "part" }
             val values =
                 ContentValues().apply {
@@ -962,8 +965,8 @@ class MessagingRepository(
             val addr =
                 ContentValues().apply {
                     put(Telephony.Mms.Addr.ADDRESS, who)
-                    put(Telephony.Mms.Addr.TYPE, 137)
-                    put(Telephony.Mms.Addr.CHARSET, 106)
+                    put(Telephony.Mms.Addr.TYPE, PduHeaders.FROM)
+                    put(Telephony.Mms.Addr.CHARSET, CharacterSets.UTF_8)
                 }
             context.contentResolver.insert(Uri.parse("content://mms/$id/addr"), addr)
         }
@@ -993,7 +996,7 @@ class MessagingRepository(
         val media = parts.any { it.mime.startsWith("image/") || it.mime.startsWith("audio/") || it.mime.startsWith("video/") }
         val values =
             ContentValues().apply {
-                put(Telephony.Mms.MESSAGE_TYPE, 132)
+                put(Telephony.Mms.MESSAGE_TYPE, PduHeaders.MESSAGE_TYPE_RETRIEVE_CONF)
                 put(Telephony.Mms.CONTENT_TYPE, "application/vnd.wap.multipart.related")
                 put(Telephony.Mms.TEXT_ONLY, if (media) 0 else 1)
             }
@@ -1026,9 +1029,9 @@ class MessagingRepository(
         to: List<String>,
         cc: List<String>,
     ) {
-        ensureAddr(mmsId, from, 137)
-        for (address in to) ensureAddr(mmsId, address, 151)
-        for (address in cc) ensureAddr(mmsId, address, 130)
+        ensureAddr(mmsId, from, PduHeaders.FROM)
+        for (address in to) ensureAddr(mmsId, address, PduHeaders.TO)
+        for (address in cc) ensureAddr(mmsId, address, PduHeaders.CC)
     }
 
     private fun rethreadStored(
@@ -1037,9 +1040,9 @@ class MessagingRepository(
     ) {
         val rows = readAddrRows(mmsId)
         if (rows.isEmpty()) return
-        val from = rows.firstOrNull { it.type == 137 }?.address.orEmpty()
-        val to = rows.filter { it.type == 151 }.map { it.address }
-        val cc = rows.filter { it.type == 130 }.map { it.address }
+        val from = rows.firstOrNull { it.type == PduHeaders.FROM }?.address.orEmpty()
+        val to = rows.filter { it.type == PduHeaders.TO }.map { it.address }
+        val cc = rows.filter { it.type == PduHeaders.CC }.map { it.address }
         val participants = placeGroup(from, to, cc, ownNumbers()).participants
         Log.i(TAG, "MMS recipients=${rows.size} thread people=${participants.size}")
         if (participants.size >= 2) {
@@ -1192,9 +1195,9 @@ class MessagingRepository(
                     val idCol = cursor.getColumnIndex(Telephony.Mms._ID)
                     val typeCol = cursor.getColumnIndex(Telephony.Mms.MESSAGE_TYPE)
                     if (idCol < 0) return emptyList()
-                    while (cursor.moveToNext() && ids.size < 8) {
+                    while (cursor.moveToNext() && ids.size < PARTICIPANT_SCAN_MMS) {
                         val type = if (typeCol >= 0) cursor.getInt(typeCol) else 0
-                        if (type == 130) continue
+                        if (type == PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND) continue
                         ids += cursor.getLong(idCol)
                     }
                 }
@@ -1204,9 +1207,9 @@ class MessagingRepository(
         val found = ArrayList<String>()
         for (id in ids) {
             val rows = readAddrRows(id)
-            val from = rows.firstOrNull { it.type == 137 }?.address.orEmpty()
-            val to = rows.filter { it.type == 151 }.map { it.address }
-            val cc = rows.filter { it.type == 130 }.map { it.address }
+            val from = rows.firstOrNull { it.type == PduHeaders.FROM }?.address.orEmpty()
+            val to = rows.filter { it.type == PduHeaders.TO }.map { it.address }
+            val cc = rows.filter { it.type == PduHeaders.CC }.map { it.address }
             for (person in placeGroup(from, to, cc, own).participants) {
                 if (found.none { sameAddress(it, person) }) found += person
             }
@@ -1219,8 +1222,8 @@ class MessagingRepository(
         val shown = HashMap<String, String>()
         for (id in mmsIds) {
             val rows = readAddrRows(id)
-            val froms = rows.filter { it.type == 137 }
-            val tos = rows.filter { it.type == 151 || it.type == 130 }
+            val froms = rows.filter { it.type == PduHeaders.FROM }
+            val tos = rows.filter { it.type == PduHeaders.TO || it.type == PduHeaders.CC }
             if (froms.size != 1 || tos.size != 1) continue
             val toKey = addressKey(tos.first().address)
             val fromKey = addressKey(froms.first().address)
@@ -1273,7 +1276,7 @@ class MessagingRepository(
                 if (!info.number.isNullOrBlank()) out += info.number
                 val line = telephony?.createForSubscriptionId(info.subscriptionId)?.line1Number
                 if (!line.isNullOrBlank()) out += line
-                if (Build.VERSION.SDK_INT >= 33) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     try {
                         val number = subscriptions.getPhoneNumber(info.subscriptionId)
                         if (!number.isNullOrBlank()) out += number
@@ -1323,7 +1326,7 @@ class MessagingRepository(
             ContentValues().apply {
                 put(Telephony.Mms.Addr.ADDRESS, cleaned)
                 put(Telephony.Mms.Addr.TYPE, type)
-                put(Telephony.Mms.Addr.CHARSET, 106)
+                put(Telephony.Mms.Addr.CHARSET, CharacterSets.UTF_8)
             }
         context.contentResolver.insert(Uri.parse("content://mms/$mmsId/addr"), values)
     }
@@ -1386,7 +1389,7 @@ class MessagingRepository(
                         val box = if (boxCol >= 0) cursor.getInt(boxCol) else 0
                         if (box == Telephony.Mms.MESSAGE_BOX_DRAFTS) continue
                         val type = if (typeCol >= 0) cursor.getInt(typeCol) else 0
-                        if (type == 130) continue
+                        if (type == PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND) continue
                         val parts = mmsParts(cursor.getLong(idCol))
                         val text = parts.firstOrNull { it.mime.startsWith("text/") }?.text.orEmpty()
                         consider(
@@ -1454,7 +1457,7 @@ class MessagingRepository(
                     if (threadCol < 0) return@use
                     while (cursor.moveToNext()) {
                         if (boxCol >= 0 && cursor.getInt(boxCol) == Telephony.Mms.MESSAGE_BOX_DRAFTS) continue
-                        if (typeCol >= 0 && cursor.getInt(typeCol) == 130) continue
+                        if (typeCol >= 0 && cursor.getInt(typeCol) == PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND) continue
                         val id = cursor.getLong(threadCol)
                         val at = mmsMillis(if (dateCol >= 0) cursor.getLong(dateCol) else 0L)
                         val prev = mmsAt[id]
@@ -1580,7 +1583,7 @@ class MessagingRepository(
                 val status = cursor.getColumnIndexOrThrow(Telephony.Sms.STATUS)
                 val sub = cursor.getColumnIndex(Telephony.Sms.SUBSCRIPTION_ID)
                 var count = 0
-                while (cursor.moveToNext() && count < 2000) {
+                while (cursor.moveToNext() && count < THREAD_MESSAGE_LIMIT) {
                     val kind = cursor.getInt(type)
                     if (kind == Telephony.Sms.MESSAGE_TYPE_DRAFT) continue
                     val who = cursor.getString(address).orEmpty()
@@ -1602,7 +1605,7 @@ class MessagingRepository(
                 }
             }
         out += loadMms(threadId, names, region)
-        return out.sortedByDescending { it.timestamp }.take(2000)
+        return out.sortedByDescending { it.timestamp }.take(THREAD_MESSAGE_LIMIT)
     }
 
     private fun loadMms(
@@ -1631,7 +1634,7 @@ class MessagingRepository(
                 val boxIndex = cursor.getColumnIndexOrThrow(Telephony.Mms.MESSAGE_BOX)
                 val sub = cursor.getColumnIndex(Telephony.Mms.SUBSCRIPTION_ID)
                 var count = 0
-                while (cursor.moveToNext() && count < 500) {
+                while (cursor.moveToNext() && count < THREAD_MMS_LIMIT) {
                     val mmsId = cursor.getLong(id)
                     val box = cursor.getInt(boxIndex)
                     if (box == Telephony.Mms.MESSAGE_BOX_DRAFTS) continue
@@ -1644,7 +1647,7 @@ class MessagingRepository(
                             }.map { PartRef(it.id, it.mime) }
                     if (text.isBlank() && attachments.isEmpty() && box == Telephony.Mms.MESSAGE_BOX_INBOX) {
                         val type = mmsType(mmsId)
-                        if (type == 130) continue
+                        if (type == PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND) continue
                     }
                     val who = mmsSender(mmsId, box)
                     out +=
@@ -1715,7 +1718,7 @@ class MessagingRepository(
                     val column = cursor.getString(text)
                     val body =
                         if (mime.startsWith("text/")) {
-                            partText(column, if (column.isNullOrBlank()) partBytes(partId, 16_000) else null)
+                            partText(column, if (column.isNullOrBlank()) partBytes(partId, PART_TEXT_MAX_BYTES) else null)
                         } else {
                             column
                         }
@@ -1731,7 +1734,7 @@ class MessagingRepository(
         return !(mime.startsWith("image/") || mime.startsWith("video/") || mime.startsWith("audio/") || mime.startsWith("text/"))
     }
 
-    private fun partHead(partId: Long): ByteArray? = partBytes(partId, 16)
+    private fun partHead(partId: Long): ByteArray? = partBytes(partId, PART_SNIFF_BYTES)
 
     private fun partBytes(
         partId: Long,
@@ -1756,7 +1759,7 @@ class MessagingRepository(
         mmsId: Long,
         box: Int,
     ): String {
-        val want = if (box == Telephony.Mms.MESSAGE_BOX_INBOX) 137 else 151
+        val want = if (box == Telephony.Mms.MESSAGE_BOX_INBOX) PduHeaders.FROM else PduHeaders.TO
         var fallback = ""
         context.contentResolver
             .query(
@@ -1905,7 +1908,7 @@ class MessagingRepository(
 
     private fun names(): Map<String, NameEntry> {
         val now = System.currentTimeMillis()
-        if (now - namesAt < 30_000) return namesCache
+        if (now - namesAt < NAMES_CACHE_MS) return namesCache
         if (!hasContacts()) {
             namesCache = emptyMap()
             namesAt = now
@@ -1961,7 +1964,7 @@ class MessagingRepository(
         entry: NameEntry,
     ) {
         // Short codes such as 49447 are shorter than a phone number and still name a thread.
-        if (key.length < 3) return
+        if (key.length < MIN_NAME_KEY_LENGTH) return
         val existing = map[key]
         if (existing == null || (existing.photo.isNullOrBlank() && !entry.photo.isNullOrBlank())) {
             map[key] = entry
@@ -2040,10 +2043,33 @@ class MessagingRepository(
     companion object {
         private const val TAG = "Messages"
         private const val GROUP_REPLY_WINDOW_MS = 12L * 60L * 60L * 1000L
+        private const val PING_DEBOUNCE_MS = 120L
+        private const val GROUP_REPAIR_DAYS = 90L
+        private const val GROUP_REPAIR_MAX_MMS = 400
+        private const val PENDING_MMS_DAYS = 3L
+        private const val CONTACT_MATCH_LIMIT = 8
+        private const val SEARCH_SMS_LIMIT = 60
+        private const val SEARCH_HIT_LIMIT = 80
+        private const val PARTICIPANT_SCAN_MMS = 8
+        private const val THREAD_MESSAGE_LIMIT = 2000
+        private const val THREAD_MMS_LIMIT = 500
+        private const val PART_NAME_MAX = 40
+        private const val PART_TEXT_MAX_BYTES = 16_000
+        private const val PART_SNIFF_BYTES = 16
+        private const val NAMES_CACHE_MS = 30_000L
+        private const val MIN_NAME_KEY_LENGTH = 3
+        private const val FIRST_PRINTABLE = 0x20
+
+        /** A date above this is already in milliseconds (seconds would be past the year 2286). */
+        private const val MILLIS_THRESHOLD = 10_000_000_000L
+        private val PRINTABLE_ASCII = 32..126
 
         private fun conversationUri(threadId: Long) = Uri.parse("content://mms-sms/conversations/$threadId")
 
-        private fun mmsMillis(raw: Long): Long = if (raw > 10_000_000_000L) raw else raw * 1000
+        /** The provider stores MMS dates in seconds, but some OEM rows hold milliseconds. */
+        private fun mmsMillis(raw: Long): Long = if (raw > MILLIS_THRESHOLD) raw else TimeUnit.SECONDS.toMillis(raw)
+
+        private fun nowSeconds(): Long = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis())
 
         private fun key(
             address: String,
@@ -2061,7 +2087,7 @@ class MessagingRepository(
                         '\n' -> append("\\n")
                         '\r' -> append("\\r")
                         '\t' -> append("\\t")
-                        else -> if (ch.code < 0x20) append("\\u%04x".format(ch.code)) else append(ch)
+                        else -> if (ch.code < FIRST_PRINTABLE) append("\\u%04x".format(ch.code)) else append(ch)
                     }
                 }
                 append('"')

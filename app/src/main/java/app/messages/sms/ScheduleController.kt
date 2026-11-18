@@ -12,7 +12,7 @@ import app.messages.data.ScheduledMessage
 object ScheduleController {
     fun canExact(context: Context): Boolean {
         val alarm = context.getSystemService(AlarmManager::class.java) ?: return false
-        return Build.VERSION.SDK_INT < 31 || alarm.canScheduleExactAlarms()
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarm.canScheduleExactAlarms()
     }
 
     fun arm(
@@ -40,7 +40,7 @@ object ScheduleController {
         val now = System.currentTimeMillis()
         for (item in app.local.current().scheduled) {
             if (item.failed) continue
-            val whenAt = if (item.sendAt <= now) now + 1_500 else item.sendAt
+            val whenAt = if (item.sendAt <= now) now + OVERDUE_DELAY_MS else item.sendAt
             arm(app, item.copy(sendAt = whenAt))
         }
     }
@@ -63,3 +63,6 @@ object ScheduleController {
         )
     }
 }
+
+/** An overdue scheduled text goes out this soon after the alarms are re-armed. */
+private const val OVERDUE_DELAY_MS = 1_500L

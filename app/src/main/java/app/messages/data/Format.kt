@@ -23,7 +23,7 @@ fun initials(title: String): String {
 fun unreadBadge(count: Int): String =
     when {
         count <= 0 -> ""
-        count > 99 -> "99+"
+        count > MAX_BADGE_COUNT -> "$MAX_BADGE_COUNT+"
         else -> count.toString()
     }
 
@@ -76,7 +76,7 @@ fun simDetail(
     val sim = sims.firstOrNull { it.id == subId } ?: return "SIM"
     val carrier = sim.carrier.trim()
     val digits = carrier.count { it.isDigit() }
-    if (carrier.isBlank() || digits >= 6 || carrier.equals(sim.shortName, ignoreCase = true)) return sim.shortName
+    if (carrier.isBlank() || digits >= CARRIER_CODE_DIGITS || carrier.equals(sim.shortName, ignoreCase = true)) return sim.shortName
     return "${sim.shortName} $carrier"
 }
 
@@ -107,7 +107,7 @@ fun messageCaption(
     showType: Boolean,
     showSim: Boolean,
 ): String {
-    val parts = ArrayList<String>(5)
+    val parts = mutableListOf<String>()
     if (showDirection) parts += if (incoming) "Received" else "Sent"
     if (showParty && party.isNotBlank()) parts += party
     if (showTime && time.isNotBlank()) parts += time
@@ -174,3 +174,8 @@ fun formatFullStamp(
     val zdt = Instant.ofEpochMilli(millis).atZone(zone)
     return zdt.format(DateTimeFormatter.ofPattern("EEE, MMM d, yyyy h:mm:ss a"))
 }
+
+private const val MAX_BADGE_COUNT = 99
+
+/** A carrier "name" with this many digits is a network code (e.g. 310260), not something to show. */
+private const val CARRIER_CODE_DIGITS = 6

@@ -56,7 +56,7 @@ object MmsInbound {
             }
         }
         var flags = PendingIntent.FLAG_UPDATE_CURRENT
-        if (Build.VERSION.SDK_INT >= 31) flags = flags or PendingIntent.FLAG_MUTABLE
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) flags = flags or PendingIntent.FLAG_MUTABLE
         val intent =
             Intent(context, MmsDownloadReceiver::class.java).apply {
                 data = Uri.parse("messages://mms-download/$fileName")

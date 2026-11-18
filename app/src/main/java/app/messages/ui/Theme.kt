@@ -83,7 +83,7 @@ private data class ColorSet(
      */
     private fun roles(dark: Boolean): ColorScheme {
         val darkText = if (dark) bg else ink
-        val canvas = if (dark) bg.toward(Color.White, 0.20f) else bg.toward(Color.Black, 0.07f)
+        val canvas = canvasFor(bg)
         val accent = ensureContrast(primary, listOf(bg, canvas), toward = ink)
         val second = ensureContrast(strong, listOf(bg, canvas), toward = ink)
         val onAccent = readableOn(accent, if (dark) outgoingInk else Color.White, darkText)
@@ -98,6 +98,8 @@ private data class ColorSet(
         val onOutgoing = readableOn(bubble, outgoingInk, darkText)
         val onIncoming = readableOn(incoming, ink, darkText)
         val toward = if (dark) Color.White else Color.Black
+
+        val steps = if (dark) DarkSurfaceSteps else LightSurfaceSteps
 
         fun step(amount: Float) = bg.toward(toward, amount)
         val base = if (dark) darkColorScheme() else lightColorScheme()
@@ -128,18 +130,44 @@ private data class ColorSet(
             onError = readableOn(danger, Color.White, darkText),
             outline = line,
             outlineVariant = line,
-            surfaceDim = if (dark) bg else step(0.10f),
-            surfaceBright = if (dark) step(0.16f) else bg,
-            surfaceContainerLowest = if (dark) bg.toward(Color.Black, 0.30f) else Color.White,
-            surfaceContainerLow = step(if (dark) 0.04f else 0.02f),
-            surfaceContainer = step(if (dark) 0.07f else 0.04f),
-            surfaceContainerHigh = step(if (dark) 0.10f else 0.06f),
-            surfaceContainerHighest = step(if (dark) 0.14f else 0.09f),
+            surfaceDim = if (dark) bg else step(steps.edge),
+            surfaceBright = if (dark) step(steps.edge) else bg,
+            surfaceContainerLowest = if (dark) bg.toward(Color.Black, DARK_LOWEST_DEEPEN) else Color.White,
+            surfaceContainerLow = step(steps.low),
+            surfaceContainer = step(steps.mid),
+            surfaceContainerHigh = step(steps.high),
+            surfaceContainerHighest = step(steps.highest),
         )
     }
 }
 
+/** WCAG AA contrast for body text. */
 private const val READABLE = 4.5f
+
+/** WCAG adds this to both luminances so pure black does not divide by zero. */
+private const val WCAG_FLARE = 0.05f
+private const val CONTRAST_STEP = 0.05f
+private const val DARK_SURFACE_LUMINANCE = 0.4f
+private const val MID_LUMINANCE = 0.5f
+private const val CANVAS_LIFT = 0.20f
+private const val CANVAS_DEEPEN = 0.07f
+private const val STRIPE_LIFT = 0.06f
+private const val STRIPE_DEEPEN = 0.04f
+private const val SEARCH_LIFT = 0.12f
+private const val SEARCH_DEEPEN = 0.05f
+private const val DARK_LOWEST_DEEPEN = 0.30f
+
+/** How far each Material surface container steps from the page, from low to highest. */
+private data class SurfaceSteps(
+    val low: Float,
+    val mid: Float,
+    val high: Float,
+    val highest: Float,
+    val edge: Float,
+)
+
+private val DarkSurfaceSteps = SurfaceSteps(low = 0.04f, mid = 0.07f, high = 0.10f, highest = 0.14f, edge = 0.16f)
+private val LightSurfaceSteps = SurfaceSteps(low = 0.02f, mid = 0.04f, high = 0.06f, highest = 0.09f, edge = 0.10f)
 
 /** [preferred] when it reads on [background], otherwise whichever of [dark] or white reads better. */
 internal fun readableOn(
@@ -160,7 +188,7 @@ internal fun ensureContrast(
     var amount = 0f
     var out = color
     while (amount < 1f && backgrounds.any { contrastRatio(out, it) < READABLE }) {
-        amount += 0.05f
+        amount += CONTRAST_STEP
         out = color.toward(toward, amount.coerceAtMost(1f))
     }
     return out
@@ -172,25 +200,25 @@ private fun Color.toward(
 ): Color = lerp(this, other, amount)
 
 /** Page behind the inbox rows and the open conversation. A lighter step of the theme surface in dark mode, a slightly deeper step in light mode. */
-fun ColorScheme.mailCanvas(): Color {
-    val base = surface
-    return if (base.luminance() < 0.4f) base.toward(Color.White, 0.20f) else base.toward(Color.Black, 0.07f)
-}
+fun ColorScheme.mailCanvas(): Color = canvasFor(surface)
+
+private fun canvasFor(surface: Color): Color = surface.stepAway(lighten = CANVAS_LIFT, deepen = CANVAS_DEEPEN)
+
+/** Lighter on a dark color, deeper on a light one. */
+private fun Color.stepAway(
+    lighten: Float,
+    deepen: Float,
+    darkBelow: Float = DARK_SURFACE_LUMINANCE,
+): Color = if (luminance() < darkBelow) toward(Color.White, lighten) else toward(Color.Black, deepen)
 
 /** Solid card sitting on [mailCanvas]. */
 fun ColorScheme.mailCard(): Color = surface
 
 /** Alternating inbox card, still in the same palette as [mailCard]. */
-fun ColorScheme.mailCardStripe(): Color {
-    val card = mailCard()
-    return if (card.luminance() < 0.4f) card.toward(Color.White, 0.06f) else card.toward(Color.Black, 0.04f)
-}
+fun ColorScheme.mailCardStripe(): Color = mailCard().stepAway(lighten = STRIPE_LIFT, deepen = STRIPE_DEEPEN)
 
 /** Search field, one step lighter or deeper than the page. */
-fun ColorScheme.mailSearch(): Color {
-    val canvas = mailCanvas()
-    return if (canvas.luminance() < 0.5f) canvas.toward(Color.White, 0.12f) else canvas.toward(Color.Black, 0.05f)
-}
+fun ColorScheme.mailSearch(): Color = mailCanvas().stepAway(lighten = SEARCH_LIFT, deepen = SEARCH_DEEPEN, darkBelow = MID_LUMINANCE)
 
 /**
  * Text and icons on the mail page and cards. Uses the palette ink when it
@@ -200,8 +228,8 @@ fun ColorScheme.mailInk(): Color {
     val ink = onSurface
     val card = mailCard()
     val canvas = mailCanvas()
-    if (contrastRatio(ink, card) >= 4.5f && contrastRatio(ink, canvas) >= 4.5f) return ink
-    return if (card.luminance() < 0.4f) Color.White else Color.Black
+    if (contrastRatio(ink, card) >= READABLE && contrastRatio(ink, canvas) >= READABLE) return ink
+    return if (card.luminance() < DARK_SURFACE_LUMINANCE) Color.White else Color.Black
 }
 
 fun contrastRatio(
@@ -210,7 +238,7 @@ fun contrastRatio(
 ): Float {
     val lighter = maxOf(foreground.luminance(), background.luminance())
     val darker = minOf(foreground.luminance(), background.luminance())
-    return (lighter + 0.05f) / (darker + 0.05f)
+    return (lighter + WCAG_FLARE) / (darker + WCAG_FLARE)
 }
 
 val ThemeChoices: List<ThemeChoice> =
@@ -550,7 +578,7 @@ private fun colorsFor(
             "dark" -> true
             else -> systemDark
         }
-    if (settings.dynamicColor && Build.VERSION.SDK_INT >= 31) {
+    if (settings.dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         return if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
     }
     val choice = ThemeChoices.first { it.id == resolvedPalette(settings.palette) }

@@ -2048,7 +2048,7 @@ private fun decodeStill(bytes: ByteArray): androidx.compose.ui.graphics.ImageBit
     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
     var sample = 1
     val longEdge = maxOf(bounds.outWidth, bounds.outHeight)
-    while (longEdge / (sample * 2) >= 1080 && longEdge > 0) sample *= 2
+    while (longEdge / (sample * 2) >= PREVIEW_LONG_EDGE_PX && longEdge > 0) sample *= 2
     val opts = BitmapFactory.Options().apply { inSampleSize = sample }
     return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)?.asImageBitmap()
 }
@@ -2188,8 +2188,8 @@ private fun previewFrame(
     return try {
         retriever.setDataSource(path)
         val frame =
-            if (Build.VERSION.SDK_INT >= 27) {
-                retriever.getScaledFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC, 256, 256)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                retriever.getScaledFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC, VIDEO_THUMB_PX, VIDEO_THUMB_PX)
             } else {
                 retriever.getFrameAtTime(0)
             }
@@ -2293,7 +2293,7 @@ private fun requestDeviceLocation(
     }
     val providers =
         buildList {
-            if (Build.VERSION.SDK_INT >= 31) add(LocationManager.FUSED_PROVIDER)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) add(LocationManager.FUSED_PROVIDER)
             add(LocationManager.NETWORK_PROVIDER)
             add(LocationManager.GPS_PROVIDER)
         }
@@ -2310,7 +2310,7 @@ private fun requestDeviceLocation(
         }
         return null
     }
-    if (Build.VERSION.SDK_INT < 30) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
         onResult(lastKnown())
         return
     }
@@ -2339,3 +2339,7 @@ private fun requestDeviceLocation(
 }
 
 private fun splitRecipients(raw: String): List<String> = raw.split(',', ';', '\n').map { it.trim() }.filter { it.isNotEmpty() }
+
+/** Attachment previews are decoded down to about this long edge. */
+private const val PREVIEW_LONG_EDGE_PX = 1080
+private const val VIDEO_THUMB_PX = 256

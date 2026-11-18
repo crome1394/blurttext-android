@@ -59,7 +59,7 @@ object SendIntents {
     }
 
     private fun Intent.parcelUri(name: String): Uri? =
-        if (Build.VERSION.SDK_INT >= 33) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             getParcelableExtra(name, Uri::class.java)
         } else {
             @Suppress("DEPRECATION")

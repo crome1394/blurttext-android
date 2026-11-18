@@ -25,7 +25,7 @@ fun addressKey(raw: String): String {
     if ('@' in cleaned) return cleaned.lowercase()
     val digits = cleaned.filter { it.isDigit() }
     if (digits.isEmpty()) return cleaned.lowercase()
-    return if (digits.length >= 10) digits.takeLast(10) else digits
+    return if (digits.length >= NATIONAL_DIGITS) digits.takeLast(NATIONAL_DIGITS) else digits
 }
 
 fun sameAddress(
@@ -83,3 +83,6 @@ fun inboxSnippet(
     val provider = providerSnippet.trim()
     return reactionInboxLine(provider) ?: provider
 }
+
+/** North American numbers compare on their last ten digits, without the country code. */
+private const val NATIONAL_DIGITS = 10

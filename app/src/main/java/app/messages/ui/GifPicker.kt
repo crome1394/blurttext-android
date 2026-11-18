@@ -245,7 +245,7 @@ fun AnimatedGif(
     description: String,
     crop: Boolean = false,
 ) {
-    if (!KlipyGifs.isGif(bytes) || Build.VERSION.SDK_INT < 28) {
+    if (!KlipyGifs.isGif(bytes) || Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
         val still = remember(bytes) { stillGif(bytes) }
         if (still != null) {
             Image(still, description, modifier, contentScale = if (crop) ContentScale.Crop else ContentScale.Fit)
@@ -286,13 +286,13 @@ fun AnimatedGif(
 
 private fun stillGif(bytes: ByteArray): ImageBitmap? = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
 
-@RequiresApi(28)
+@RequiresApi(Build.VERSION_CODES.P)
 private fun decodeGif(
     context: android.content.Context,
     bytes: ByteArray,
 ): android.graphics.drawable.Drawable {
     val source =
-        if (Build.VERSION.SDK_INT >= 31) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             ImageDecoder.createSource(ByteBuffer.wrap(bytes))
         } else {
             val file = java.io.File.createTempFile("gifview", ".gif", context.cacheDir)
