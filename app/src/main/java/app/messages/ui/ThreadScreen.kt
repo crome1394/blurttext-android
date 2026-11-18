@@ -185,6 +185,7 @@ import app.messages.sms.reactionDescription
 import app.messages.sms.reactionLayout
 import app.messages.sms.tapbackBody
 import app.messages.sms.tapbackSymbols
+import app.messages.util.attempt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -1326,7 +1327,7 @@ private fun Composer(
         }
 
     fun queueShot() {
-        try {
+        attempt {
             val dir = File(context.cacheDir, "camera").apply { mkdirs() }
             val file = File(dir, "shot-${System.currentTimeMillis()}.jpg")
             if (!file.createNewFile() && !file.exists()) {
@@ -1336,7 +1337,7 @@ private fun Composer(
             val uri = FileProvider.getUriForFile(context, context.packageName + ".files", file)
             cameraUri = uri
             shotRequest += 1
-        } catch (t: Throwable) {
+        }.onFailure { t ->
             onError(t.message ?: "Could not open the camera")
         }
     }
@@ -2068,10 +2069,10 @@ private fun VideoStill(
                 val ext = if (mime.contains("3gpp")) "3gp" else "mp4"
                 val file = File.createTempFile("vframe-$partId", ".$ext", cache)
                 try {
-                    file.writeBytes(bytes)
-                    previewFrame(file.absolutePath, true)
-                } catch (_: Throwable) {
-                    null
+                    attempt {
+                        file.writeBytes(bytes)
+                        previewFrame(file.absolutePath, true)
+                    }.getOrNull()
                 } finally {
                     file.delete()
                 }
@@ -2326,12 +2327,12 @@ private fun requestDeviceLocation(
             tryProvider(index + 1)
             return
         }
-        try {
+        attempt {
             manager.getCurrentLocation(provider, null, ContextCompat.getMainExecutor(context)) { location ->
                 val maps = link(location)
                 if (maps != null) onResult(maps) else tryProvider(index + 1)
             }
-        } catch (_: Exception) {
+        }.onFailure {
             tryProvider(index + 1)
         }
     }

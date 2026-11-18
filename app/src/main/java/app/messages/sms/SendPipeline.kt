@@ -16,6 +16,7 @@ import app.lantext.sms.MmsSentReceiver
 import app.lantext.sms.mmsWireAddress
 import app.messages.MessagesApp
 import app.messages.data.mimeForPath
+import app.messages.util.attempt
 import com.google.android.mms.ContentType
 import com.google.android.mms.InvalidHeaderValueException
 import com.google.android.mms.pdu_alt.CharacterSets
@@ -54,23 +55,17 @@ object SendPipeline {
             if (dest.isEmpty()) error("Add a recipient.")
             val text = body.trim()
             if (text.isEmpty() && attachment == null) error("Message is empty.")
-            try {
+            attempt {
                 if (attachment != null || dest.size > 1) {
                     sendMms(context, dest, text, attachment, mime, subId, deliveryReports)
                 } else {
                     sendSms(context, dest.first(), text, subId, deliveryReports)
                 }
-            } catch (t: IllegalStateException) {
-                throw IllegalStateException(
-                    t.message?.replace("Fossify Messages", "BlurtText")?.replace("Fossify", "BlurtText") ?: "Could not send",
-                    t,
-                )
-            } catch (t: Throwable) {
-                Log.e(TAG, "send failed", t)
-                throw IllegalStateException(
-                    (t.message ?: "Could not send").replace("Fossify Messages", "BlurtText").replace("Fossify", "BlurtText"),
-                    t,
-                )
+            }.getOrElse { t ->
+                // Expected send problems are IllegalStateExceptions with a message for the user.
+                if (t !is IllegalStateException) Log.e(TAG, "send failed", t)
+                val message = (t.message ?: "Could not send").replace("Fossify Messages", "BlurtText").replace("Fossify", "BlurtText")
+                throw IllegalStateException(message, t)
             }
         }
 
@@ -149,9 +144,9 @@ object SendPipeline {
             sendTextMms(context, manager, addresses, body, deliveryReports)
         }
         if (!recentMmsExists(context, threadId, body)) {
-            try {
+            attempt {
                 insertOutgoingMms(context, threadId, addresses, body, stored, storedMime, subscription)
-            } catch (t: Throwable) {
+            }.onFailure { t ->
                 Log.w(TAG, "Sent MMS was not copied into the conversation", t)
             }
         }
@@ -219,9 +214,8 @@ object SendPipeline {
                 .scheme("content")
                 .build()
         for (pkg in listOf("com.android.mms.service", "com.android.phone", "com.android.providers.telephony")) {
-            try {
+            attempt {
                 context.grantUriPermission(pkg, contentUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            } catch (_: Exception) {
             }
         }
         val waiter = MmsSentReceiver.register(fileName)

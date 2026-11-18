@@ -36,6 +36,7 @@ import app.messages.sms.cleanMmsAddress
 import app.messages.sms.inboxSnippet
 import app.messages.sms.placeGroup
 import app.messages.sms.sameAddress
+import app.messages.util.attempt
 import com.google.android.mms.pdu_alt.CharacterSets
 import com.google.android.mms.pdu_alt.PduHeaders
 import kotlinx.coroutines.CoroutineScope
@@ -253,11 +254,11 @@ class MessagingRepository(
     }
 
     fun streamSize(uri: Uri): Long =
-        try {
+        attempt {
             context.contentResolver.openFileDescriptor(uri, "r")?.use { fd ->
                 if (fd.statSize > 0) fd.statSize else -1L
             } ?: -1L
-        } catch (_: Throwable) {
+        }.getOrElse {
             -1L
         }
 
@@ -467,9 +468,9 @@ class MessagingRepository(
     }
 
     fun isBlocked(address: String): Boolean =
-        try {
+        attempt {
             address.isNotBlank() && BlockedNumberContract.isBlocked(context, address)
-        } catch (_: Exception) {
+        }.getOrElse {
             false
         }
 
@@ -539,7 +540,7 @@ class MessagingRepository(
      * thread, and learns this phone's number from one-to-one messages.
      */
     fun repairGroupThreads() {
-        try {
+        attempt {
             val since = nowSeconds() - TimeUnit.DAYS.toSeconds(GROUP_REPAIR_DAYS)
             val ids = mutableListOf<Long>()
             context.contentResolver
@@ -569,7 +570,7 @@ class MessagingRepository(
                 cachedGroups = null
             }
             ping()
-        } catch (t: Exception) {
+        }.onFailure { t ->
             Log.w(TAG, "Could not repair group threads", t)
         }
     }
@@ -671,9 +672,9 @@ class MessagingRepository(
     }
 
     fun loadPart(partId: Long): ByteArray? =
-        try {
+        attempt {
             context.contentResolver.openInputStream(Uri.parse("content://mms/part/$partId"))?.use { it.readBytes() }
-        } catch (_: Exception) {
+        }.getOrElse {
             null
         }
 
@@ -841,9 +842,8 @@ class MessagingRepository(
                 if (subId >= 0) put(Telephony.Mms.SUBSCRIPTION_ID, subId)
                 val who = mmsWireAddress(context, notification.from)
                 if (who.isNotBlank()) {
-                    try {
+                    attempt {
                         put(Telephony.Mms.THREAD_ID, Telephony.Threads.getOrCreateThreadId(context, hashSetOf(who)))
-                    } catch (_: Exception) {
                     }
                 }
             }
@@ -971,11 +971,10 @@ class MessagingRepository(
             context.contentResolver.insert(Uri.parse("content://mms/$id/addr"), addr)
         }
         if (who.isNotBlank() && threadOf(placeholder) <= 0) {
-            try {
+            attempt {
                 val thread = Telephony.Threads.getOrCreateThreadId(context, hashSetOf(who))
                 val threadValues = ContentValues().apply { put(Telephony.Mms.THREAD_ID, thread) }
                 context.contentResolver.update(placeholder, threadValues, null, null)
-            } catch (_: Exception) {
             }
         }
         if (parsed.dateSeconds > 0) {
@@ -1061,9 +1060,9 @@ class MessagingRepository(
     ) {
         if (participants.size < 2) return
         val thread =
-            try {
+            attempt {
                 Telephony.Threads.getOrCreateThreadId(context, HashSet(participants))
-            } catch (t: Exception) {
+            }.getOrElse { t ->
                 Log.w(TAG, "Could not open the group thread", t)
                 return
             }
@@ -1118,7 +1117,7 @@ class MessagingRepository(
                 .buildUpon()
                 .appendQueryParameter("simple", "true")
                 .build()
-        try {
+        attempt {
             context.contentResolver.query(uri, arrayOf("_id", "recipient_ids", "date"), null, null, null)?.use { cursor ->
                 val idCol = cursor.getColumnIndex("_id")
                 val recipientCol = cursor.getColumnIndex("recipient_ids")
@@ -1131,14 +1130,14 @@ class MessagingRepository(
                     out += GroupThread(cursor.getLong(idCol), addresses, mmsMillis(raw))
                 }
             }
-        } catch (t: Exception) {
+        }.onFailure { t ->
             Log.w(TAG, "Could not list group threads", t)
         }
         return out
     }
 
     private fun mmsTimeMillis(mmsId: Long): Long =
-        try {
+        attempt {
             context.contentResolver
                 .query(
                     ContentUris.withAppendedId(Telephony.Mms.CONTENT_URI, mmsId),
@@ -1149,7 +1148,7 @@ class MessagingRepository(
                 )?.use { cursor ->
                     if (!cursor.moveToFirst()) 0L else mmsMillis(cursor.getLong(0))
                 } ?: 0L
-        } catch (_: Exception) {
+        }.getOrElse {
             0L
         }
 
@@ -1169,12 +1168,12 @@ class MessagingRepository(
         column: String,
         threadId: Long,
     ): Int =
-        try {
+        attempt {
             context.contentResolver
                 .query(uri, arrayOf("_id"), "$column=?", arrayOf(threadId.toString()), null)
                 ?.use { it.count }
                 ?: -1
-        } catch (_: Exception) {
+        }.getOrElse {
             -1
         }
 
@@ -1183,7 +1182,7 @@ class MessagingRepository(
         own: List<String>,
     ): List<String> {
         val ids = mutableListOf<Long>()
-        try {
+        attempt {
             context.contentResolver
                 .query(
                     Telephony.Mms.CONTENT_URI,
@@ -1201,7 +1200,7 @@ class MessagingRepository(
                         ids += cursor.getLong(idCol)
                     }
                 }
-        } catch (_: Exception) {
+        }.onFailure {
             return emptyList()
         }
         val found = ArrayList<String>()
@@ -1247,9 +1246,9 @@ class MessagingRepository(
     private fun readStoredOwn(): List<String> {
         val file = ownNumberFile()
         if (!file.isFile) return emptyList()
-        return try {
+        return attempt {
             file.readLines().map { cleanMmsAddress(it) }.filter { addressKey(it).isNotEmpty() }
-        } catch (_: Exception) {
+        }.getOrElse {
             emptyList()
         }
     }
@@ -1257,9 +1256,9 @@ class MessagingRepository(
     private fun rememberOwn(numbers: List<String>) {
         val merged = (readStoredOwn() + numbers).filter { addressKey(it).isNotEmpty() }.distinctBy { addressKey(it) }
         if (merged.isEmpty()) return
-        try {
+        attempt {
             ownNumberFile().writeText(merged.joinToString("\n"))
-        } catch (t: Exception) {
+        }.getOrElse { t ->
             Log.w(TAG, "Could not remember this phone's number", t)
         }
     }
@@ -1291,7 +1290,7 @@ class MessagingRepository(
 
     private fun readAddrRows(mmsId: Long): List<AddrRow> {
         val out = mutableListOf<AddrRow>()
-        try {
+        attempt {
             context.contentResolver
                 .query(
                     Uri.parse("content://mms/$mmsId/addr"),
@@ -1309,7 +1308,6 @@ class MessagingRepository(
                         out += AddrRow(cursor.getInt(type), value)
                     }
                 }
-        } catch (_: Exception) {
         }
         return out
     }
@@ -1346,7 +1344,7 @@ class MessagingRepository(
             body = text
             media = kind
         }
-        try {
+        attempt {
             context.contentResolver
                 .query(
                     Telephony.Sms.CONTENT_URI,
@@ -1369,9 +1367,8 @@ class MessagingRepository(
                         break
                     }
                 }
-        } catch (_: Exception) {
         }
-        try {
+        attempt {
             context.contentResolver
                 .query(
                     Telephony.Mms.CONTENT_URI,
@@ -1400,7 +1397,6 @@ class MessagingRepository(
                         break
                     }
                 }
-        } catch (_: Exception) {
         }
         return LatestPreview(body, media)
     }
@@ -1418,7 +1414,7 @@ class MessagingRepository(
     private fun latestMmsThreads(): Set<Long> {
         val smsAt = HashMap<Long, Long>()
         val mmsAt = HashMap<Long, Long>()
-        try {
+        attempt {
             context.contentResolver
                 .query(
                     Telephony.Sms.CONTENT_URI,
@@ -1439,9 +1435,8 @@ class MessagingRepository(
                         if (prev == null || at > prev) smsAt[id] = at
                     }
                 }
-        } catch (_: Exception) {
         }
-        try {
+        attempt {
             context.contentResolver
                 .query(
                     Telephony.Mms.CONTENT_URI,
@@ -1464,7 +1459,6 @@ class MessagingRepository(
                         if (prev == null || at > prev) mmsAt[id] = at
                     }
                 }
-        } catch (_: Exception) {
         }
         val mms = HashSet<Long>()
         for ((id, at) in mmsAt) {
@@ -1475,7 +1469,7 @@ class MessagingRepository(
     }
 
     private fun loadConversations(): List<Conversation> {
-        return try {
+        return attempt {
             val persisted = local.snapshot
             val pins = persisted.pins.toSet()
             val mmsThreads = latestMmsThreads()
@@ -1542,13 +1536,14 @@ class MessagingRepository(
             }
             error.value = null
             out.sortedWith(compareByDescending<Conversation> { it.pinned }.thenByDescending { it.timestamp })
-        } catch (e: SecurityException) {
-            Log.w(TAG, "load conversations: no message access", e)
-            error.value = "Allow message access, or set BlurtText as the default SMS app."
-            emptyList()
-        } catch (e: Exception) {
-            Log.e(TAG, "load conversations", e)
-            error.value = e.message ?: "Could not load conversations."
+        }.getOrElse { e ->
+            if (e is SecurityException) {
+                Log.w(TAG, "load conversations: no message access", e)
+                error.value = "Allow message access, or set BlurtText as the default SMS app."
+            } else {
+                Log.e(TAG, "load conversations", e)
+                error.value = e.message ?: "Could not load conversations."
+            }
             emptyList()
         }
     }
@@ -1740,7 +1735,7 @@ class MessagingRepository(
         partId: Long,
         max: Int,
     ): ByteArray? =
-        try {
+        attempt {
             context.contentResolver.openInputStream(Uri.parse("content://mms/part/$partId"))?.use { stream ->
                 val buf = ByteArray(max)
                 var n = 0
@@ -1751,7 +1746,7 @@ class MessagingRepository(
                 }
                 if (n == 0) null else buf.copyOf(n)
             }
-        } catch (_: Exception) {
+        }.getOrElse {
             null
         }
 

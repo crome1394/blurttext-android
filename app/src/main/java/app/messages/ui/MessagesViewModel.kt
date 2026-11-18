@@ -32,6 +32,7 @@ import app.messages.sms.ScheduleController
 import app.messages.sms.SendIntents
 import app.messages.sms.SendPipeline
 import app.messages.sms.SmsRole
+import app.messages.util.attempt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -257,11 +258,11 @@ class MessagesViewModel(
     fun deleteFromTrash(ids: Set<Long>) {
         if (ids.isEmpty()) return
         viewModelScope.launch {
-            try {
+            attempt {
                 withContext(Dispatchers.IO) { repo.deleteThreads(ids) }
                 local.update { state -> state.copy(trash = state.trash.filter { it.threadId !in ids }) }
                 hidden.value = hidden.value - ids
-            } catch (t: Throwable) {
+            }.onFailure { t ->
                 snackbar.showSnackbar(t.message ?: "Could not delete")
             }
         }
@@ -405,22 +406,24 @@ class MessagesViewModel(
         purgingTrash = true
         viewModelScope.launch {
             try {
-                withContext(Dispatchers.IO) { repo.deleteThreads(due) }
-                local.update { current ->
-                    val still =
-                        trashDueForDeletion(
-                            trash = current.trash,
-                            enabled = current.autoDeleteTrashEnabled,
-                            days = current.autoDeleteTrashDays,
-                            now = System.currentTimeMillis(),
-                            openThreadId = ActiveThread.id,
-                        )
-                    val drop = due.intersect(still)
-                    if (drop.isEmpty()) current else current.copy(trash = current.trash.filter { it.threadId !in drop })
+                attempt {
+                    withContext(Dispatchers.IO) { repo.deleteThreads(due) }
+                    local.update { current ->
+                        val still =
+                            trashDueForDeletion(
+                                trash = current.trash,
+                                enabled = current.autoDeleteTrashEnabled,
+                                days = current.autoDeleteTrashDays,
+                                now = System.currentTimeMillis(),
+                                openThreadId = ActiveThread.id,
+                            )
+                        val drop = due.intersect(still)
+                        if (drop.isEmpty()) current else current.copy(trash = current.trash.filter { it.threadId !in drop })
+                    }
+                    hidden.value = hidden.value - due
+                }.onFailure { t ->
+                    snackbar.showSnackbar(t.message ?: "Could not delete old trash")
                 }
-                hidden.value = hidden.value - due
-            } catch (t: Throwable) {
-                snackbar.showSnackbar(t.message ?: "Could not delete old trash")
             } finally {
                 purgingTrash = false
             }
@@ -474,7 +477,7 @@ class MessagesViewModel(
     ) {
         if (ids.isEmpty()) return
         viewModelScope.launch {
-            try {
+            attempt {
                 withContext(Dispatchers.IO) { repo.setArchived(ids, archived) }
                 selection.value = emptySet()
                 if (archived) {
@@ -483,7 +486,7 @@ class MessagesViewModel(
                         withContext(Dispatchers.IO) { repo.setArchived(ids, false) }
                     }
                 }
-            } catch (t: Throwable) {
+            }.onFailure { t ->
                 snackbar.showSnackbar(t.message ?: "Could not update the conversation")
             }
         }
@@ -521,7 +524,7 @@ class MessagesViewModel(
         val numbers = selection.value.flatMap { id -> conversation(id)?.addresses.orEmpty() }.distinct()
         val threads = selection.value
         viewModelScope.launch {
-            try {
+            attempt {
                 withContext(Dispatchers.IO) {
                     repo.block(numbers)
                     repo.setArchived(threads, true)
@@ -530,7 +533,7 @@ class MessagesViewModel(
                 selection.value = emptySet()
                 refreshBlocked()
                 snackbar.showSnackbar("Blocked")
-            } catch (t: Throwable) {
+            }.onFailure { t ->
                 snackbar.showSnackbar(t.message ?: "Could not block that number")
             }
         }
@@ -538,11 +541,11 @@ class MessagesViewModel(
 
     fun blockNumber(number: String) {
         viewModelScope.launch {
-            try {
+            attempt {
                 withContext(Dispatchers.IO) { repo.block(listOf(number)) }
                 refreshBlocked()
                 snackbar.showSnackbar("Blocked")
-            } catch (t: Throwable) {
+            }.onFailure { t ->
                 snackbar.showSnackbar(t.message ?: "Could not block that number")
             }
         }
@@ -550,10 +553,10 @@ class MessagesViewModel(
 
     fun unblock(number: String) {
         viewModelScope.launch {
-            try {
+            attempt {
                 withContext(Dispatchers.IO) { repo.unblock(number) }
                 refreshBlocked()
-            } catch (t: Throwable) {
+            }.onFailure { t ->
                 snackbar.showSnackbar(t.message ?: "Could not unblock that number")
             }
         }
@@ -591,28 +594,30 @@ class MessagesViewModel(
         viewModelScope.launch {
             sending.value = true
             try {
-                val sentThread =
-                    withContext(Dispatchers.IO) {
-                        val known = if (threadId > 0) repo.addressesFor(threadId) else emptyList()
-                        val dest = if (known.size > addresses.size) known else addresses
-                        repo.send(dest, body, attachmentPath, subId)
+                attempt {
+                    val sentThread =
+                        withContext(Dispatchers.IO) {
+                            val known = if (threadId > 0) repo.addressesFor(threadId) else emptyList()
+                            val dest = if (known.size > addresses.size) known else addresses
+                            repo.send(dest, body, attachmentPath, subId)
+                        }
+                    val keys = listOf(draftKey(sentThread), draftKey(addresses))
+                    keys.forEach { key ->
+                        composerTouched += key
+                        composerText[key] = ""
+                        composerFile[key] = null
                     }
-                val keys = listOf(draftKey(sentThread), draftKey(addresses))
-                keys.forEach { key ->
-                    composerTouched += key
-                    composerText[key] = ""
-                    composerFile[key] = null
+                    local.update { state ->
+                        state.copy(
+                            drafts = state.drafts - keys.toSet(),
+                            attachments = state.attachments - keys.toSet(),
+                        )
+                    }
+                    if (attachmentPath != null) withContext(Dispatchers.IO) { repo.releaseAttachment(attachmentPath) }
+                    showThread(sentThread)
+                }.onFailure { t ->
+                    snackbar.showSnackbar(t.message ?: "Could not send")
                 }
-                local.update { state ->
-                    state.copy(
-                        drafts = state.drafts - keys.toSet(),
-                        attachments = state.attachments - keys.toSet(),
-                    )
-                }
-                if (attachmentPath != null) withContext(Dispatchers.IO) { repo.releaseAttachment(attachmentPath) }
-                showThread(sentThread)
-            } catch (t: Throwable) {
-                snackbar.showSnackbar(t.message ?: "Could not send")
             } finally {
                 sending.value = false
             }
@@ -628,14 +633,14 @@ class MessagesViewModel(
     ) {
         if (body.isBlank() || addresses.isEmpty()) return
         viewModelScope.launch {
-            try {
+            attempt {
                 withContext(Dispatchers.IO) {
                     val known = if (threadId > 0) repo.addressesFor(threadId) else emptyList()
                     val dest = if (known.size > addresses.size) known else addresses
                     if (dest.isEmpty()) error("No recipients on this conversation")
                     repo.send(dest, body, null, subId)
                 }
-            } catch (t: Throwable) {
+            }.onFailure { t ->
                 snackbar.showSnackbar(t.message ?: "Could not send")
             }
         }
@@ -647,17 +652,19 @@ class MessagesViewModel(
         viewModelScope.launch {
             sending.value = true
             try {
-                withContext(Dispatchers.IO) {
-                    val targets =
-                        repo.addressesFor(message.threadId).ifEmpty {
-                            listOf(address).filter { it.isNotBlank() }
-                        }
-                    if (targets.isEmpty()) return@withContext
-                    repo.send(targets, message.body, null, message.subId.takeIf { it >= 0 })
-                    repo.deleteMessage(message)
+                attempt {
+                    withContext(Dispatchers.IO) {
+                        val targets =
+                            repo.addressesFor(message.threadId).ifEmpty {
+                                listOf(address).filter { it.isNotBlank() }
+                            }
+                        if (targets.isEmpty()) return@withContext
+                        repo.send(targets, message.body, null, message.subId.takeIf { it >= 0 })
+                        repo.deleteMessage(message)
+                    }
+                }.onFailure { t ->
+                    snackbar.showSnackbar(t.message ?: "Could not send")
                 }
-            } catch (t: Throwable) {
-                snackbar.showSnackbar(t.message ?: "Could not send")
             } finally {
                 sending.value = false
             }
@@ -666,9 +673,9 @@ class MessagesViewModel(
 
     fun deleteMessage(message: ChatMessage) {
         viewModelScope.launch {
-            try {
+            attempt {
                 withContext(Dispatchers.IO) { repo.deleteMessage(message) }
-            } catch (t: Throwable) {
+            }.onFailure { t ->
                 snackbar.showSnackbar(t.message ?: "Could not delete the message")
             }
         }
@@ -768,9 +775,9 @@ class MessagesViewModel(
         withContext(Dispatchers.IO) {
             val file = backupExportFile()
             val generation = backupExportGeneration.incrementAndGet()
-            try {
+            attempt {
                 repo.exportTo(file)
-            } catch (t: Throwable) {
+            }.onFailure { t ->
                 file.delete()
                 throw t
             }
@@ -805,22 +812,24 @@ class MessagesViewModel(
         selection.value = emptySet()
         viewModelScope.launch {
             try {
-                val now = System.currentTimeMillis()
-                local.update { state ->
-                    val kept = state.trash.filter { it.threadId !in ids }
-                    state.copy(trash = kept + ids.map { TrashedThread(it, now) })
+                attempt {
+                    val now = System.currentTimeMillis()
+                    local.update { state ->
+                        val kept = state.trash.filter { it.threadId !in ids }
+                        state.copy(trash = kept + ids.map { TrashedThread(it, now) })
+                    }
+                    val result =
+                        snackbar.showSnackbar(
+                            message = if (ids.size == 1) "Moved to Trash" else "${ids.size} conversations moved to Trash",
+                            actionLabel = "Undo",
+                            duration = SnackbarDuration.Long,
+                        )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        local.update { state -> state.copy(trash = state.trash.filter { it.threadId !in ids }) }
+                    }
+                }.onFailure { t ->
+                    snackbar.showSnackbar(t.message ?: "Could not move that conversation to Trash")
                 }
-                val result =
-                    snackbar.showSnackbar(
-                        message = if (ids.size == 1) "Moved to Trash" else "${ids.size} conversations moved to Trash",
-                        actionLabel = "Undo",
-                        duration = SnackbarDuration.Long,
-                    )
-                if (result == SnackbarResult.ActionPerformed) {
-                    local.update { state -> state.copy(trash = state.trash.filter { it.threadId !in ids }) }
-                }
-            } catch (t: Throwable) {
-                snackbar.showSnackbar(t.message ?: "Could not move that conversation to Trash")
             } finally {
                 hidden.value = hidden.value - ids
             }
@@ -830,9 +839,9 @@ class MessagesViewModel(
     private fun refreshBlocked() {
         viewModelScope.launch(Dispatchers.IO) {
             blocked.value =
-                try {
+                attempt {
                     repo.blockedNumbers()
-                } catch (_: Exception) {
+                }.getOrElse {
                     emptyList()
                 }
         }

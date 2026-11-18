@@ -16,6 +16,7 @@ import androidx.core.app.RemoteInput
 import app.lantext.LanTextApp
 import app.messages.MessagesApp
 import app.messages.data.matchesBlockedKeyword
+import app.messages.util.attempt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -42,7 +43,7 @@ class SmsDeliverReceiver : BroadcastReceiver() {
             )
         val app = context.applicationContext as? MessagesApp
         if (deliver && app != null) {
-            try {
+            attempt {
                 val blocked = app.messaging.isBlocked(address)
                 val keyword = matchesBlockedKeyword(body, app.local.snapshot.blockedKeywords)
                 val threadId = app.messaging.insertInbox(address, body, timestamp, subId, unread = !blocked && !keyword)
@@ -60,7 +61,7 @@ class SmsDeliverReceiver : BroadcastReceiver() {
                         timestamp,
                     )
                 }
-            } catch (t: Throwable) {
+            }.onFailure { t ->
                 Log.e(TAG, "Could not store incoming SMS", t)
             }
         }
@@ -130,34 +131,36 @@ class MmsWapPushReceiver : BroadcastReceiver() {
         val pending = goAsync()
         Thread {
             try {
-                val notification =
-                    MmsNotificationParser.parse(data)
-                        ?: MmsNotificationParser.parse(raw)
-                        ?: if (data != null && header != null) {
-                            MmsNotificationParser.parse(header + data)
-                        } else {
-                            null
-                                ?: MmsNotificationParser.parse(header)
-                        }
-                if (notification == null) {
-                    Log.w("Messages", "Could not read an MMS notification bytes=${data?.size ?: raw?.size ?: 0}")
-                    return@Thread
+                attempt {
+                    val notification =
+                        MmsNotificationParser.parse(data)
+                            ?: MmsNotificationParser.parse(raw)
+                            ?: if (data != null && header != null) {
+                                MmsNotificationParser.parse(header + data)
+                            } else {
+                                null
+                                    ?: MmsNotificationParser.parse(header)
+                            }
+                    if (notification == null) {
+                        Log.w("Messages", "Could not read an MMS notification bytes=${data?.size ?: raw?.size ?: 0}")
+                        return@Thread
+                    }
+                    Log.i("Messages", "MMS notification bytes=${data?.size ?: raw?.size ?: 0}")
+                    val uri = app.messaging.acceptMmsNotification(notification, subId) ?: return@Thread
+                    val blocked = app.messaging.isBlocked(notification.from)
+                    MmsInbound.begin(
+                        context,
+                        uri,
+                        notification.contentLocation,
+                        notification.from,
+                        subId,
+                        quiet = blocked,
+                    )
+                    app.messaging.ping()
+                }.onFailure { t ->
+                    Log.e("Messages", "MMS download failed to start", t)
+                    MessageNotifier.simple(context, "Picture message", "Could not start the download.")
                 }
-                Log.i("Messages", "MMS notification bytes=${data?.size ?: raw?.size ?: 0}")
-                val uri = app.messaging.acceptMmsNotification(notification, subId) ?: return@Thread
-                val blocked = app.messaging.isBlocked(notification.from)
-                MmsInbound.begin(
-                    context,
-                    uri,
-                    notification.contentLocation,
-                    notification.from,
-                    subId,
-                    quiet = blocked,
-                )
-                app.messaging.ping()
-            } catch (t: Throwable) {
-                Log.e("Messages", "MMS download failed to start", t)
-                MessageNotifier.simple(context, "Picture message", "Could not start the download.")
             } finally {
                 pending.finish()
             }
@@ -183,49 +186,51 @@ class MmsDownloadReceiver : BroadcastReceiver() {
         Thread {
             val file = java.io.File(context.cacheDir, fileName)
             try {
-                Log.i("Messages", "MMS download result=$code http=$http bytes=${file.length()}")
-                if (code == Activity.RESULT_OK && file.length() > MAX_RETRIEVE_BYTES) {
-                    Log.w("Messages", "MMS download is too large bytes=${file.length()}")
-                    if (!quiet) {
-                        MessageNotifier.simple(context, "Picture message", "The picture is too large to open.")
-                    }
-                } else if (code == Activity.RESULT_OK) {
-                    val bytes = if (file.isFile) file.readBytes() else ByteArray(0)
-                    val threadId = app.messaging.storeRetrievedMms(placeholder, bytes, address)
-                    if (threadId >= 0) {
-                        val text =
-                            MmsRetrieveParser
-                                .parse(bytes)
-                                ?.parts
-                                ?.firstOrNull { it.mime.startsWith("text/") }
-                                ?.text()
-                                .orEmpty()
-                        val blocked = app.messaging.isBlocked(address)
-                        val keyword = matchesBlockedKeyword(text, app.local.snapshot.blockedKeywords)
-                        if (blocked) {
-                            app.messaging.markRead(threadId)
-                            app.messaging.setArchived(listOf(threadId), true)
-                        } else if (!keyword) {
-                            MessageNotifier.notifyIncoming(
-                                context,
-                                threadId,
-                                address,
-                                address.ifBlank { "Picture message" },
-                                text,
-                                System.currentTimeMillis(),
-                            )
+                attempt {
+                    Log.i("Messages", "MMS download result=$code http=$http bytes=${file.length()}")
+                    if (code == Activity.RESULT_OK && file.length() > MAX_RETRIEVE_BYTES) {
+                        Log.w("Messages", "MMS download is too large bytes=${file.length()}")
+                        if (!quiet) {
+                            MessageNotifier.simple(context, "Picture message", "The picture is too large to open.")
+                        }
+                    } else if (code == Activity.RESULT_OK) {
+                        val bytes = if (file.isFile) file.readBytes() else ByteArray(0)
+                        val threadId = app.messaging.storeRetrievedMms(placeholder, bytes, address)
+                        if (threadId >= 0) {
+                            val text =
+                                MmsRetrieveParser
+                                    .parse(bytes)
+                                    ?.parts
+                                    ?.firstOrNull { it.mime.startsWith("text/") }
+                                    ?.text()
+                                    .orEmpty()
+                            val blocked = app.messaging.isBlocked(address)
+                            val keyword = matchesBlockedKeyword(text, app.local.snapshot.blockedKeywords)
+                            if (blocked) {
+                                app.messaging.markRead(threadId)
+                                app.messaging.setArchived(listOf(threadId), true)
+                            } else if (!keyword) {
+                                MessageNotifier.notifyIncoming(
+                                    context,
+                                    threadId,
+                                    address,
+                                    address.ifBlank { "Picture message" },
+                                    text,
+                                    System.currentTimeMillis(),
+                                )
+                            }
+                        } else if (!quiet) {
+                            MessageNotifier.simple(context, "Picture message", "The picture downloaded, but it could not be opened.")
+                        } else {
+                            Log.w("Messages", "Retrieved MMS was not stored bytes=${bytes.size}")
                         }
                     } else if (!quiet) {
-                        MessageNotifier.simple(context, "Picture message", "The picture downloaded, but it could not be opened.")
-                    } else {
-                        Log.w("Messages", "Retrieved MMS was not stored bytes=${bytes.size}")
+                        MessageNotifier.simple(context, "Picture message", "The download did not finish ($code).")
                     }
-                } else if (!quiet) {
-                    MessageNotifier.simple(context, "Picture message", "The download did not finish ($code).")
+                    app.messaging.ping()
+                }.onFailure { t ->
+                    Log.e("Messages", "MMS download failed", t)
                 }
-                app.messaging.ping()
-            } catch (t: Throwable) {
-                Log.e("Messages", "MMS download failed", t)
             } finally {
                 file.delete()
                 pending.finish()
@@ -266,15 +271,17 @@ class MessageActionReceiver : BroadcastReceiver() {
                 val pending = goAsync()
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        val addresses =
-                            app.messaging.addressesFor(threadId).ifEmpty {
-                                listOf(fallback).filter { it.isNotBlank() }
-                            }
-                        app.messaging.send(addresses, text, null, null)
-                        app.messaging.markRead(threadId)
-                    } catch (t: Throwable) {
-                        Log.e("Messages", "Notification reply failed", t)
-                        MessageNotifier.simple(context, "Reply failed", t.message ?: "Could not send")
+                        attempt {
+                            val addresses =
+                                app.messaging.addressesFor(threadId).ifEmpty {
+                                    listOf(fallback).filter { it.isNotBlank() }
+                                }
+                            app.messaging.send(addresses, text, null, null)
+                            app.messaging.markRead(threadId)
+                        }.onFailure { t ->
+                            Log.e("Messages", "Notification reply failed", t)
+                            MessageNotifier.simple(context, "Reply failed", t.message ?: "Could not send")
+                        }
                     } finally {
                         pending.finish()
                     }
@@ -315,11 +322,13 @@ class HeadlessSmsSendService : Service() {
         val app = applicationContext as MessagesApp
         Thread {
             try {
-                kotlinx.coroutines.runBlocking {
-                    app.messaging.send(listOf(address), body, null, null)
+                attempt {
+                    kotlinx.coroutines.runBlocking {
+                        app.messaging.send(listOf(address), body, null, null)
+                    }
+                }.onFailure { t ->
+                    Log.e("Messages", "Headless send failed", t)
                 }
-            } catch (t: Throwable) {
-                Log.e("Messages", "Headless send failed", t)
             } finally {
                 stopSelf(startId)
             }
@@ -338,21 +347,23 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val item =
-                    app.local
-                        .current()
-                        .scheduled
-                        .find { it.id == id } ?: return@launch
-                app.messaging.send(item.addresses, item.body, null, item.subscriptionId)
-                app.local.update { state -> state.copy(scheduled = state.scheduled.filter { it.id != id }) }
-                val shown = if (app.local.snapshot.notificationPreview) item.body.ifBlank { "Sent" } else "Sent"
-                MessageNotifier.simple(context, "Scheduled message sent", shown, MessageNotifier.statusId(item.id))
-            } catch (t: Throwable) {
-                Log.e("Messages", "Scheduled send failed", t)
-                app.local.update { state ->
-                    state.copy(scheduled = state.scheduled.map { if (it.id == id) it.copy(failed = true) else it })
+                attempt {
+                    val item =
+                        app.local
+                            .current()
+                            .scheduled
+                            .find { it.id == id } ?: return@launch
+                    app.messaging.send(item.addresses, item.body, null, item.subscriptionId)
+                    app.local.update { state -> state.copy(scheduled = state.scheduled.filter { it.id != id }) }
+                    val shown = if (app.local.snapshot.notificationPreview) item.body.ifBlank { "Sent" } else "Sent"
+                    MessageNotifier.simple(context, "Scheduled message sent", shown, MessageNotifier.statusId(item.id))
+                }.onFailure { t ->
+                    Log.e("Messages", "Scheduled send failed", t)
+                    app.local.update { state ->
+                        state.copy(scheduled = state.scheduled.map { if (it.id == id) it.copy(failed = true) else it })
+                    }
+                    MessageNotifier.simple(context, "Scheduled message failed", t.message ?: "Could not send", MessageNotifier.statusId(id))
                 }
-                MessageNotifier.simple(context, "Scheduled message failed", t.message ?: "Could not send", MessageNotifier.statusId(id))
             } finally {
                 pending.finish()
             }

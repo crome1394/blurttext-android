@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.util.Log
 import app.messages.data.MessagingRepository
+import app.messages.util.attempt
 import java.io.File
 import java.util.UUID
 
@@ -50,9 +51,8 @@ object MmsInbound {
                 .build()
         val grant = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
         for (pkg in listOf("com.android.mms.service", "com.android.phone", "com.android.providers.telephony")) {
-            try {
+            attempt {
                 context.grantUriPermission(pkg, contentUri, grant)
-            } catch (_: Exception) {
             }
         }
         var flags = PendingIntent.FLAG_UPDATE_CURRENT
@@ -68,10 +68,10 @@ object MmsInbound {
                 putExtra("quiet", quiet)
             }
         val downloaded = PendingIntent.getBroadcast(context, fileName.hashCode(), intent, flags)
-        try {
+        attempt {
             smsManager(context, subId).downloadMultimediaMessage(context, location, contentUri, null, downloaded)
             Log.i(TAG, "MMS download started")
-        } catch (t: Throwable) {
+        }.onFailure { t ->
             Log.e(TAG, "MMS download failed to start", t)
             file.delete()
             synchronized(started) { started.remove(key) }
@@ -85,9 +85,9 @@ object MmsInbound {
     ) {
         if (!SmsRole.isDefault(context)) return
         val pending =
-            try {
+            attempt {
                 repo.pendingMmsNotifications()
-            } catch (t: Throwable) {
+            }.getOrElse { t ->
                 Log.w(TAG, "Could not look for picture messages", t)
                 return
             }
