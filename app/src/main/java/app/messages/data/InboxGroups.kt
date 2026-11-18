@@ -11,10 +11,11 @@ const val INBOX_GROUP_DATE = "date"
 const val INBOX_GROUP_TYPE = "type"
 const val INBOX_GROUP_PINNED = "pinned"
 
-fun inboxGroupMode(raw: String): String = when (raw) {
-    INBOX_GROUP_READ, INBOX_GROUP_DATE, INBOX_GROUP_TYPE, INBOX_GROUP_PINNED -> raw
-    else -> INBOX_GROUP_NONE
-}
+fun inboxGroupMode(raw: String): String =
+    when (raw) {
+        INBOX_GROUP_READ, INBOX_GROUP_DATE, INBOX_GROUP_TYPE, INBOX_GROUP_PINNED -> raw
+        else -> INBOX_GROUP_NONE
+    }
 
 data class InboxSection(
     val title: String,
@@ -22,8 +23,14 @@ data class InboxSection(
 )
 
 sealed class InboxListEntry {
-    data class Heading(val title: String) : InboxListEntry()
-    data class Row(val conversation: Conversation, val stripe: Int) : InboxListEntry()
+    data class Heading(
+        val title: String,
+    ) : InboxListEntry()
+
+    data class Row(
+        val conversation: Conversation,
+        val stripe: Int,
+    ) : InboxListEntry()
 }
 
 data class TrashedConversation(
@@ -48,23 +55,25 @@ fun groupInbox(
     if (rows.isEmpty()) return emptyList()
     val normalized = inboxGroupMode(mode)
     if (normalized == INBOX_GROUP_NONE) return listOf(InboxSection("", rows))
-    val order = when (normalized) {
-        INBOX_GROUP_READ -> listOf("Unread", "Read")
-        INBOX_GROUP_DATE -> dateHeadings
-        INBOX_GROUP_TYPE -> listOf("SMS", "MMS")
-        INBOX_GROUP_PINNED -> listOf("Pinned", "Other")
-        else -> return listOf(InboxSection("", rows))
-    }
+    val order =
+        when (normalized) {
+            INBOX_GROUP_READ -> listOf("Unread", "Read")
+            INBOX_GROUP_DATE -> dateHeadings
+            INBOX_GROUP_TYPE -> listOf("SMS", "MMS")
+            INBOX_GROUP_PINNED -> listOf("Pinned", "Other")
+            else -> return listOf(InboxSection("", rows))
+        }
     val buckets = LinkedHashMap<String, MutableList<Conversation>>()
     for (title in order) buckets[title] = mutableListOf()
     for (row in rows) {
-        val title = when (normalized) {
-            INBOX_GROUP_READ -> if (row.unread > 0) "Unread" else "Read"
-            INBOX_GROUP_DATE -> receivedBucket(row.timestamp, now, zone, weekFields)
-            INBOX_GROUP_TYPE -> if (row.latestMms) "MMS" else "SMS"
-            INBOX_GROUP_PINNED -> if (row.pinned) "Pinned" else "Other"
-            else -> ""
-        }
+        val title =
+            when (normalized) {
+                INBOX_GROUP_READ -> if (row.unread > 0) "Unread" else "Read"
+                INBOX_GROUP_DATE -> receivedBucket(row.timestamp, now, zone, weekFields)
+                INBOX_GROUP_TYPE -> if (row.latestMms) "MMS" else "SMS"
+                INBOX_GROUP_PINNED -> if (row.pinned) "Pinned" else "Other"
+                else -> ""
+            }
         buckets.getValue(title).add(row)
     }
     return order.mapNotNull { title ->

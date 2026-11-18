@@ -22,7 +22,14 @@ object MmsInbound {
     private const val TAG = "Messages"
     private val started = HashSet<String>()
 
-    fun begin(context: Context, placeholder: Uri, location: String, from: String, subId: Int, quiet: Boolean) {
+    fun begin(
+        context: Context,
+        placeholder: Uri,
+        location: String,
+        from: String,
+        subId: Int,
+        quiet: Boolean,
+    ) {
         if (!location.startsWith("http://") && !location.startsWith("https://")) {
             Log.w(TAG, "MMS location is not a carrier URL")
             return
@@ -34,11 +41,13 @@ object MmsInbound {
         val fileName = "dl-" + UUID.randomUUID() + ".dat"
         val file = File(context.cacheDir, fileName)
         file.writeBytes(ByteArray(0))
-        val contentUri = Uri.Builder()
-            .scheme("content")
-            .authority(context.packageName + ".MmsFileProvider")
-            .path(fileName)
-            .build()
+        val contentUri =
+            Uri
+                .Builder()
+                .scheme("content")
+                .authority(context.packageName + ".MmsFileProvider")
+                .path(fileName)
+                .build()
         val grant = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
         for (pkg in listOf("com.android.mms.service", "com.android.phone", "com.android.providers.telephony")) {
             try {
@@ -48,15 +57,16 @@ object MmsInbound {
         }
         var flags = PendingIntent.FLAG_UPDATE_CURRENT
         if (Build.VERSION.SDK_INT >= 31) flags = flags or PendingIntent.FLAG_MUTABLE
-        val intent = Intent(context, MmsDownloadReceiver::class.java).apply {
-            data = Uri.parse("messages://mms-download/$fileName")
-            clipData = ClipData.newRawUri("mms", contentUri)
-            addFlags(grant)
-            putExtra("file", fileName)
-            putExtra("placeholder", placeholder.toString())
-            putExtra("address", from)
-            putExtra("quiet", quiet)
-        }
+        val intent =
+            Intent(context, MmsDownloadReceiver::class.java).apply {
+                data = Uri.parse("messages://mms-download/$fileName")
+                clipData = ClipData.newRawUri("mms", contentUri)
+                addFlags(grant)
+                putExtra("file", fileName)
+                putExtra("placeholder", placeholder.toString())
+                putExtra("address", from)
+                putExtra("quiet", quiet)
+            }
         val downloaded = PendingIntent.getBroadcast(context, fileName.hashCode(), intent, flags)
         try {
             smsManager(context, subId).downloadMultimediaMessage(context, location, contentUri, null, downloaded)
@@ -69,14 +79,18 @@ object MmsInbound {
         }
     }
 
-    fun retryPending(context: Context, repo: MessagingRepository) {
+    fun retryPending(
+        context: Context,
+        repo: MessagingRepository,
+    ) {
         if (!SmsRole.isDefault(context)) return
-        val pending = try {
-            repo.pendingMmsNotifications()
-        } catch (t: Throwable) {
-            Log.w(TAG, "Could not look for picture messages", t)
-            return
-        }
+        val pending =
+            try {
+                repo.pendingMmsNotifications()
+            } catch (t: Throwable) {
+                Log.w(TAG, "Could not look for picture messages", t)
+                return
+            }
         for (item in pending) {
             begin(context, item.placeholder, item.location, item.from, item.subId, quiet = true)
         }

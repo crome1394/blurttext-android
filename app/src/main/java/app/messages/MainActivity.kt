@@ -17,14 +17,16 @@ import app.messages.ui.MessagesViewModel
 class MainActivity : ComponentActivity() {
     private val viewModel: MessagesViewModel by viewModels()
 
-    private val roleLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        viewModel.onResume()
-        requestRemaining()
-    }
+    private val roleLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            viewModel.onResume()
+            requestRemaining()
+        }
 
-    private val permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        viewModel.onResume()
-    }
+    private val permissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+            viewModel.onResume()
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,8 +52,9 @@ class MainActivity : ComponentActivity() {
                 return
             }
         }
-        val change = Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT)
-            .putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, packageName)
+        val change =
+            Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT)
+                .putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, packageName)
         roleLauncher.launch(change)
     }
 
@@ -66,9 +69,10 @@ class MainActivity : ComponentActivity() {
         needed += Manifest.permission.RECEIVE_SMS
         needed += Manifest.permission.RECEIVE_MMS
         needed += Manifest.permission.CAMERA
-        val missing = needed.filter {
-            checkSelfPermission(it) != android.content.pm.PackageManager.PERMISSION_GRANTED
-        }
+        val missing =
+            needed.filter {
+                checkSelfPermission(it) != android.content.pm.PackageManager.PERMISSION_GRANTED
+            }
         if (missing.isNotEmpty()) permissionLauncher.launch(missing.toTypedArray())
     }
 }

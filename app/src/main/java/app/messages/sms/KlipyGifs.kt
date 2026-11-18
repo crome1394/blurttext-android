@@ -14,23 +14,32 @@ object KlipyGifs {
         val bytes: Int,
     )
 
-    fun search(apiKey: String, query: String, maxBytes: Int): List<Hit> =
-        GifSearch.search(query, apiKey, maxBytes).map { it.toHit() }
+    fun search(
+        apiKey: String,
+        query: String,
+        maxBytes: Int,
+    ): List<Hit> = GifSearch.search(query, apiKey, maxBytes).map { it.toHit() }
 
-    fun download(url: String, maxBytes: Int): ByteArray = GifSearch.download(url, maxBytes)
+    fun download(
+        url: String,
+        maxBytes: Int,
+    ): ByteArray = GifSearch.download(url, maxBytes)
 
     fun isGif(bytes: ByteArray): Boolean =
         bytes.size >= 6 && bytes[0] == 'G'.code.toByte() && bytes[1] == 'I'.code.toByte() && bytes[2] == 'F'.code.toByte()
 
     fun isAllowed(url: String): Boolean = GifSearch.isAllowed(url)
 
-    fun hitsFrom(json: String, maxBytes: Int): List<Hit> =
-        GifSearch.hitsFrom(json, maxBytes).map { it.toHit() }
+    fun hitsFrom(
+        json: String,
+        maxBytes: Int,
+    ): List<Hit> = GifSearch.hitsFrom(json, maxBytes).map { it.toHit() }
 
-    private fun GifHit.toHit() = Hit(
-        id = id,
-        previewUrl = url,
-        sendUrl = sendUrl.ifBlank { url },
-        bytes = bytes,
-    )
+    private fun GifHit.toHit() =
+        Hit(
+            id = id,
+            previewUrl = url,
+            sendUrl = sendUrl.ifBlank { url },
+            bytes = bytes,
+        )
 }

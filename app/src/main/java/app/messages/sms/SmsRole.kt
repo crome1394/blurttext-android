@@ -25,7 +25,10 @@ object IncomingDedup {
     private var key: String = ""
     private var at: Long = 0L
 
-    fun claim(address: String, body: String): Boolean {
+    fun claim(
+        address: String,
+        body: String,
+    ): Boolean {
         val next = address + "\n" + body
         val now = System.currentTimeMillis()
         synchronized(this) {

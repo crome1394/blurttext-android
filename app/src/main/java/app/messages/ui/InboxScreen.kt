@@ -22,22 +22,21 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
@@ -50,7 +49,6 @@ import androidx.compose.material.icons.filled.MarkEmailRead
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material.icons.outlined.PushPin as OutlinedPushPin
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
@@ -58,8 +56,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -69,6 +65,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -84,56 +82,60 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import kotlin.math.abs
-import kotlin.math.roundToInt
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.messages.R
 import app.messages.data.Conversation
 import app.messages.data.InboxListEntry
 import app.messages.data.InboxListFilter
-import app.messages.data.inboxEntries
 import app.messages.data.RibbonItem
+import app.messages.data.SearchHit
 import app.messages.data.addressesMatchBlocked
 import app.messages.data.footerButtonDp
 import app.messages.data.footerGlyphDp
 import app.messages.data.footerHeightDp
-import app.messages.data.swipeCommitPx
-import app.messages.data.swipeReadUnreadLabel
-import app.messages.data.swipeRevealReady
-import app.messages.data.resolvedFooter
-import app.messages.data.SearchHit
 import app.messages.data.formatTimestamp
-import app.messages.data.unreadBadge
+import app.messages.data.inboxEntries
+import app.messages.data.resolvedFooter
 import app.messages.data.resolvedRibbon
 import app.messages.data.ribbonLabel
 import app.messages.data.ribbonTopCount
 import app.messages.data.swipeAction
+import app.messages.data.swipeCommitPx
+import app.messages.data.swipeReadUnreadLabel
+import app.messages.data.swipeRevealReady
+import app.messages.data.unreadBadge
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.abs
+import kotlin.math.roundToInt
+import androidx.compose.material.icons.outlined.PushPin as OutlinedPushPin
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InboxScreen(vm: MessagesViewModel, onRequestRole: () -> Unit) {
+fun InboxScreen(
+    vm: MessagesViewModel,
+    onRequestRole: () -> Unit,
+) {
     val inbox by vm.inbox.collectAsStateWithLifecycle()
     val archived by vm.archived.collectAsStateWithLifecycle()
     val blocked by vm.blocked.collectAsStateWithLifecycle()
@@ -153,11 +155,12 @@ fun InboxScreen(vm: MessagesViewModel, onRequestRole: () -> Unit) {
     val searchOpen = searching || query.isNotBlank()
     val unreadMessages = inbox.sumOf { it.unread }
     val footerLabel = inboxFooterLabel(selection.size, unreadMessages)
-    val rows = if (query.trim().length >= 2) {
-        emptyList()
-    } else {
-        filteredInbox(inbox, archived, blocked, listFilter, filterThreadId)
-    }
+    val rows =
+        if (query.trim().length >= 2) {
+            emptyList()
+        } else {
+            filteredInbox(inbox, archived, blocked, listFilter, filterThreadId)
+        }
     val filterLabel = filterCaption(listFilter, inbox, archived, filterThreadId)
     val footerItems = resolvedFooter(settings.footer).filter { it.shown }
     val footerHeight = footerHeightDp(settings.footerHeight)
@@ -172,31 +175,37 @@ fun InboxScreen(vm: MessagesViewModel, onRequestRole: () -> Unit) {
     var person by remember { mutableStateOf<PersonCard?>(null) }
     var group by remember { mutableStateOf<Conversation?>(null) }
     var pendingNumber by remember { mutableStateOf<String?>(null) }
-    val contactPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickContact()) { uri ->
-        val number = pendingNumber
-        pendingNumber = null
-        if (uri != null && !number.isNullOrBlank()) vm.addNumberToContact(uri, number)
-    }
-    val writeContacts = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        val number = pendingNumber
-        if (granted && !number.isNullOrBlank()) contactPicker.launch(null)
-        else {
+    val contactPicker =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickContact()) { uri ->
+            val number = pendingNumber
             pendingNumber = null
-            if (!granted) vm.note("Contacts permission is needed to choose a contact")
+            if (uri != null && !number.isNullOrBlank()) vm.addNumberToContact(uri, number)
         }
-    }
+    val writeContacts =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            val number = pendingNumber
+            if (granted && !number.isNullOrBlank()) {
+                contactPicker.launch(null)
+            } else {
+                pendingNumber = null
+                if (!granted) vm.note("Contacts permission is needed to choose a contact")
+            }
+        }
+
     fun chooseContact(number: String) {
         if (number.isBlank()) {
             vm.note("This conversation has no phone number")
             return
         }
         pendingNumber = number
-        val granted = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.WRITE_CONTACTS,
-        ) == PackageManager.PERMISSION_GRANTED
+        val granted =
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.WRITE_CONTACTS,
+            ) == PackageManager.PERMISSION_GRANTED
         if (granted) contactPicker.launch(null) else writeContacts.launch(Manifest.permission.WRITE_CONTACTS)
     }
+
     fun addContact(number: String) {
         if (number.isBlank()) return
         context.startActivity(
@@ -206,7 +215,11 @@ fun InboxScreen(vm: MessagesViewModel, onRequestRole: () -> Unit) {
             },
         )
     }
-    fun openPerson(number: String, title: String) {
+
+    fun openPerson(
+        number: String,
+        title: String,
+    ) {
         scope.launch {
             val uri = withContext(Dispatchers.IO) { vm.contactUri(number) }
             if (uri == null) {
@@ -217,6 +230,7 @@ fun InboxScreen(vm: MessagesViewModel, onRequestRole: () -> Unit) {
             if (!opened) person = PersonCard(title.ifBlank { number }, number)
         }
     }
+
     fun openAvatar(conversation: Conversation) {
         val numbers = conversation.addresses.filter { it.isNotBlank() }
         when {
@@ -225,11 +239,13 @@ fun InboxScreen(vm: MessagesViewModel, onRequestRole: () -> Unit) {
             else -> person = PersonCard(conversation.title.ifBlank { "Contact" }, "")
         }
     }
+
     fun closeSearch() {
         vm.query.value = ""
         searching = false
         keyboard?.hide()
     }
+
     fun runRibbon(id: String) {
         when (id) {
             "read" -> vm.markRead(selection)
@@ -250,13 +266,14 @@ fun InboxScreen(vm: MessagesViewModel, onRequestRole: () -> Unit) {
 
     val canvas = MaterialTheme.colorScheme.mailCanvas()
     val ink = MaterialTheme.colorScheme.mailInk()
-    val barColors = TopAppBarDefaults.topAppBarColors(
-        containerColor = canvas,
-        scrolledContainerColor = canvas,
-        navigationIconContentColor = ink,
-        titleContentColor = ink,
-        actionIconContentColor = ink,
-    )
+    val barColors =
+        TopAppBarDefaults.topAppBarColors(
+            containerColor = canvas,
+            scrolledContainerColor = canvas,
+            navigationIconContentColor = ink,
+            titleContentColor = ink,
+            actionIconContentColor = ink,
+        )
     Scaffold(
         modifier = Modifier.imePadding(),
         containerColor = canvas,
@@ -429,6 +446,7 @@ fun InboxScreen(vm: MessagesViewModel, onRequestRole: () -> Unit) {
                         Text(error ?: "", style = MaterialTheme.typography.bodyLarge)
                     }
                 }
+
                 query.trim().length >= 2 -> {
                     LazyColumn(
                         Modifier.fillMaxSize(),
@@ -442,6 +460,7 @@ fun InboxScreen(vm: MessagesViewModel, onRequestRole: () -> Unit) {
                         }
                     }
                 }
+
                 rows.isEmpty() -> {
                     Column(Modifier.fillMaxSize()) {
                         InboxHeading(listFilter, filterLabel)
@@ -453,17 +472,19 @@ fun InboxScreen(vm: MessagesViewModel, onRequestRole: () -> Unit) {
                         }
                     }
                 }
+
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 96.dp),
                     ) {
                         item { InboxHeading(listFilter, filterLabel) }
-                        val ribbonAnchor = if (!ribbonAtTop && selection.isNotEmpty()) {
-                            rows.firstOrNull { it.threadId in selection }?.threadId
-                        } else {
-                            null
-                        }
+                        val ribbonAnchor =
+                            if (!ribbonAtTop && selection.isNotEmpty()) {
+                                rows.firstOrNull { it.threadId in selection }?.threadId
+                            } else {
+                                null
+                            }
                         val entries = inboxEntries(rows, settings.inboxGroup, System.currentTimeMillis())
                         items(entries, key = { entry ->
                             when (entry) {
@@ -472,7 +493,10 @@ fun InboxScreen(vm: MessagesViewModel, onRequestRole: () -> Unit) {
                             }
                         }) { entry ->
                             when (entry) {
-                                is InboxListEntry.Heading -> InboxSectionHeading(entry.title)
+                                is InboxListEntry.Heading -> {
+                                    InboxSectionHeading(entry.title)
+                                }
+
                                 is InboxListEntry.Row -> {
                                     val conversation = entry.conversation
                                     if (conversation.threadId == ribbonAnchor) {
@@ -487,8 +511,11 @@ fun InboxScreen(vm: MessagesViewModel, onRequestRole: () -> Unit) {
                                         endAction = endAction,
                                         onLongPress = { vm.startSelect(conversation.threadId) },
                                         onClick = {
-                                            if (selection.isEmpty()) vm.showThread(conversation.threadId)
-                                            else vm.toggleSelect(conversation.threadId)
+                                            if (selection.isEmpty()) {
+                                                vm.showThread(conversation.threadId)
+                                            } else {
+                                                vm.toggleSelect(conversation.threadId)
+                                            }
                                         },
                                         onAvatar = { openAvatar(conversation) },
                                         onPin = { vm.togglePin(conversation.threadId) },
@@ -584,7 +611,10 @@ private fun InboxSectionHeading(title: String) {
 }
 
 @Composable
-private fun InboxHeading(filter: InboxListFilter, filterLabel: String) {
+private fun InboxHeading(
+    filter: InboxListFilter,
+    filterLabel: String,
+) {
     val title = if (filter == InboxListFilter.All) "Inbox" else filterLabel.ifBlank { "Inbox" }
     Text(
         title,
@@ -598,7 +628,10 @@ private fun InboxHeading(filter: InboxListFilter, filterLabel: String) {
 private val ThreadCardShape = RoundedCornerShape(20.dp)
 
 @Composable
-private fun SearchRow(hit: SearchHit, onClick: () -> Unit) {
+private fun SearchRow(
+    hit: SearchHit,
+    onClick: () -> Unit,
+) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -618,7 +651,11 @@ private fun SearchRow(hit: SearchHit, onClick: () -> Unit) {
                 modifier = Modifier.weight(1f),
                 color = MaterialTheme.colorScheme.mailInk(),
             )
-            Text(formatTimestamp(hit.timestamp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                formatTimestamp(hit.timestamp),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         Text(
             hit.snippet,
@@ -695,109 +732,112 @@ private fun SwipeConversation(
             onLongPress = onLongPress,
             onAvatar = onAvatar,
             onPin = onPin,
-            modifier = Modifier
-                .pointerInput(swipeEnabled, conversation.threadId, startAction, endAction) {
-                    if (!swipeEnabled) return@pointerInput
-                    val slop = viewConfiguration.touchSlop
-                    // The row used to move with the finger while the measured distance stayed
-                    // near zero, so the color showed and the release never counted.
-                    fun clamped(travelX: Float): Float {
-                        var next = travelX
-                        if (startAction == "none") next = next.coerceAtMost(0f)
-                        if (endAction == "none") next = next.coerceAtLeast(0f)
-                        val width = size.width.toFloat()
-                        return if (width > 0f) next.coerceIn(-width, width) else next
-                    }
-                    awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        val originX = down.position.x
-                        val originY = down.position.y
-                        var locked: Boolean? = null
-                        // A drag toward a disabled side stays inside the full-width row, so the
-                        // clickable would treat it as a tap or a long-press unless we consume it.
-                        var eatDisabled = false
-                        var travel = 0f
-                        var released = false
-                        var passed = false
-                        try {
-                            while (true) {
-                                val event = awaitPointerEvent()
-                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                val travelX = change.position.x - originX
-                                val travelY = change.position.y - originY
-                                if (!change.pressed) {
-                                    if (locked == true) {
-                                        travel = clamped(travelX)
-                                        released = true
-                                        change.consume()
-                                    } else if (eatDisabled) {
-                                        change.consume()
-                                    }
-                                    break
-                                }
-                                if (locked == null) {
-                                    val towardDisabled = (travelX > 0f && startAction == "none") || (travelX < 0f && endAction == "none")
-                                    val pastSlop = abs(travelX) > slop * 3f || abs(travelY) > slop * 3f
-                                    if (change.isConsumed && abs(travelY) > slop) {
-                                        locked = false
-                                    } else if (
-                                        !towardDisabled && swipeRevealReady(
-                                            elapsedMs = change.uptimeMillis - down.uptimeMillis,
-                                            travelX = travelX,
-                                            travelY = travelY,
-                                            slop = slop,
-                                        )
-                                    ) {
-                                        locked = true
-                                    } else if (pastSlop && towardDisabled && abs(travelX) >= abs(travelY)) {
-                                        locked = false
-                                        eatDisabled = true
-                                    } else if (pastSlop && abs(travelY) > abs(travelX)) {
-                                        locked = false
-                                    }
-                                }
-                                if (eatDisabled) {
-                                    change.consume()
-                                    travel = 0f
-                                    offsetPx = 0f
-                                    continue
-                                }
-                                if (locked == false) break
-                                if (locked == true) {
-                                    change.consume()
-                                    travel = clamped(travelX)
-                                    offsetPx = travel
-                                    val widthNow = size.width.toFloat()
-                                    val line = if (widthNow > 0f) swipeCommitPx(widthNow) else 80.dp.toPx()
-                                    val past = abs(travel) >= line
-                                    if (past && !passed) view.performHapticFeedback(swipeThresholdHaptic())
-                                    passed = past
-                                }
-                            }
-                        } finally {
-                            val dragged = if (released) travel else 0f
+            modifier =
+                Modifier
+                    .pointerInput(swipeEnabled, conversation.threadId, startAction, endAction) {
+                        if (!swipeEnabled) return@pointerInput
+                        val slop = viewConfiguration.touchSlop
+
+                        // The row used to move with the finger while the measured distance stayed
+                        // near zero, so the color showed and the release never counted.
+                        fun clamped(travelX: Float): Float {
+                            var next = travelX
+                            if (startAction == "none") next = next.coerceAtMost(0f)
+                            if (endAction == "none") next = next.coerceAtLeast(0f)
                             val width = size.width.toFloat()
-                            // Read the width when the finger lifts. A threshold captured on the
-                            // first frame can see a width of 0 and then ignore every swipe.
-                            val threshold = if (width > 0f) swipeCommitPx(width) else 80.dp.toPx()
-                            offsetPx = 0f
-                            val action = if (dragged > 0f) startAction else endAction
-                            if (released && action != "none" && abs(dragged) >= threshold) {
-                                val now = System.currentTimeMillis()
-                                if (now - lastSwipe > 700) {
-                                    lastSwipe = now
-                                    view.performHapticFeedback(swipeCommitHaptic())
-                                    when {
-                                        action == "delete" -> onDeleteNow()
-                                        isUnread -> onReadNow()
-                                        else -> onUnreadNow()
+                            return if (width > 0f) next.coerceIn(-width, width) else next
+                        }
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            val originX = down.position.x
+                            val originY = down.position.y
+                            var locked: Boolean? = null
+                            // A drag toward a disabled side stays inside the full-width row, so the
+                            // clickable would treat it as a tap or a long-press unless we consume it.
+                            var eatDisabled = false
+                            var travel = 0f
+                            var released = false
+                            var passed = false
+                            try {
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                    val travelX = change.position.x - originX
+                                    val travelY = change.position.y - originY
+                                    if (!change.pressed) {
+                                        if (locked == true) {
+                                            travel = clamped(travelX)
+                                            released = true
+                                            change.consume()
+                                        } else if (eatDisabled) {
+                                            change.consume()
+                                        }
+                                        break
+                                    }
+                                    if (locked == null) {
+                                        val towardDisabled =
+                                            (travelX > 0f && startAction == "none") || (travelX < 0f && endAction == "none")
+                                        val pastSlop = abs(travelX) > slop * 3f || abs(travelY) > slop * 3f
+                                        if (change.isConsumed && abs(travelY) > slop) {
+                                            locked = false
+                                        } else if (
+                                            !towardDisabled &&
+                                            swipeRevealReady(
+                                                elapsedMs = change.uptimeMillis - down.uptimeMillis,
+                                                travelX = travelX,
+                                                travelY = travelY,
+                                                slop = slop,
+                                            )
+                                        ) {
+                                            locked = true
+                                        } else if (pastSlop && towardDisabled && abs(travelX) >= abs(travelY)) {
+                                            locked = false
+                                            eatDisabled = true
+                                        } else if (pastSlop && abs(travelY) > abs(travelX)) {
+                                            locked = false
+                                        }
+                                    }
+                                    if (eatDisabled) {
+                                        change.consume()
+                                        travel = 0f
+                                        offsetPx = 0f
+                                        continue
+                                    }
+                                    if (locked == false) break
+                                    if (locked == true) {
+                                        change.consume()
+                                        travel = clamped(travelX)
+                                        offsetPx = travel
+                                        val widthNow = size.width.toFloat()
+                                        val line = if (widthNow > 0f) swipeCommitPx(widthNow) else 80.dp.toPx()
+                                        val past = abs(travel) >= line
+                                        if (past && !passed) view.performHapticFeedback(swipeThresholdHaptic())
+                                        passed = past
+                                    }
+                                }
+                            } finally {
+                                val dragged = if (released) travel else 0f
+                                val width = size.width.toFloat()
+                                // Read the width when the finger lifts. A threshold captured on the
+                                // first frame can see a width of 0 and then ignore every swipe.
+                                val threshold = if (width > 0f) swipeCommitPx(width) else 80.dp.toPx()
+                                offsetPx = 0f
+                                val action = if (dragged > 0f) startAction else endAction
+                                if (released && action != "none" && abs(dragged) >= threshold) {
+                                    val now = System.currentTimeMillis()
+                                    if (now - lastSwipe > 700) {
+                                        lastSwipe = now
+                                        view.performHapticFeedback(swipeCommitHaptic())
+                                        when {
+                                            action == "delete" -> onDeleteNow()
+                                            isUnread -> onReadNow()
+                                            else -> onUnreadNow()
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                }
-                .offset { IntOffset(offsetPx.roundToInt(), 0) },
+                    }.offset { IntOffset(offsetPx.roundToInt(), 0) },
         )
     }
 }
@@ -869,13 +909,14 @@ private fun ConversationRow(
                 overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = if (unread) FontWeight.Medium else FontWeight.Normal,
-                color = if (conversation.draft.isNotBlank()) {
-                    MaterialTheme.colorScheme.primary
-                } else if (unread) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
+                color =
+                    if (conversation.draft.isNotBlank()) {
+                        MaterialTheme.colorScheme.primary
+                    } else if (unread) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
             )
         }
         val pinned = conversation.pinned
@@ -891,19 +932,19 @@ private fun ConversationRow(
                 if (pinned) Icons.Filled.PushPin else Icons.Outlined.OutlinedPushPin,
                 contentDescription = null,
                 modifier = Modifier.size(15.dp),
-                tint = if (pinned) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                },
+                tint =
+                    if (pinned) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    },
             )
         }
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
-private fun Modifier.combinedClick(onClick: () -> Unit): Modifier =
-    combinedClickable(onClick = onClick)
+private fun Modifier.combinedClick(onClick: () -> Unit): Modifier = combinedClickable(onClick = onClick)
 
 @Composable
 private fun ThreadRibbon(
@@ -960,27 +1001,46 @@ internal fun filterGlyph(): Int {
 }
 
 private fun swipeThresholdHaptic(): Int =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) HapticFeedbackConstants.GESTURE_THRESHOLD_ACTIVATE
-    else HapticFeedbackConstants.CLOCK_TICK
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        HapticFeedbackConstants.GESTURE_THRESHOLD_ACTIVATE
+    } else {
+        HapticFeedbackConstants.CLOCK_TICK
+    }
 
 private fun swipeCommitHaptic(): Int =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) HapticFeedbackConstants.CONFIRM
-    else HapticFeedbackConstants.LONG_PRESS
-
-private fun swipeHint(start: String, end: String): String {
-    fun side(action: String, direction: String): String? = when (action) {
-        "delete" -> "Swipe $direction to delete"
-        "unread" -> "Swipe $direction to mark read or unread"
-        else -> null
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        HapticFeedbackConstants.CONFIRM
+    } else {
+        HapticFeedbackConstants.LONG_PRESS
     }
+
+private fun swipeHint(
+    start: String,
+    end: String,
+): String {
+    fun side(
+        action: String,
+        direction: String,
+    ): String? =
+        when (action) {
+            "delete" -> "Swipe $direction to delete"
+            "unread" -> "Swipe $direction to mark read or unread"
+            else -> null
+        }
     val parts = listOfNotNull(side(start, "right"), side(end, "left"))
     val lead = if (parts.isEmpty()) "Swipe actions are off" else parts.joinToString(". ")
     return "$lead. Scrolling will not delete a thread. A delete moves it to Trash and can be undone."
 }
 
-private data class PersonCard(val title: String, val number: String)
+private data class PersonCard(
+    val title: String,
+    val number: String,
+)
 
-private fun inboxFooterLabel(selected: Int, unread: Int): String {
+private fun inboxFooterLabel(
+    selected: Int,
+    unread: Int,
+): String {
     if (selected > 0) return if (selected == 1) "1 selected" else "$selected selected"
     return if (unread == 1) "1 unread" else "$unread unread"
 }
@@ -1035,45 +1095,59 @@ private fun InboxFooter(
         CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
             items.forEach { item ->
                 when (item.id) {
-                    "search" -> FooterAction(button, onSearch) {
-                        Icon(
-                            Icons.Filled.Search,
-                            if (searchOpen) "Close search" else "Search",
-                            modifier = Modifier.size(glyph.dp),
-                            tint = if (searchOpen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                        )
+                    "search" -> {
+                        FooterAction(button, onSearch) {
+                            Icon(
+                                Icons.Filled.Search,
+                                if (searchOpen) "Close search" else "Search",
+                                modifier = Modifier.size(glyph.dp),
+                                tint = if (searchOpen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
                     }
-                    "settings" -> FooterAction(button, onSettings) {
-                        Icon(
-                            Icons.Filled.Settings,
-                            "Settings",
-                            modifier = Modifier.size(glyph.dp),
-                            tint = MaterialTheme.colorScheme.mailInk(),
-                        )
+
+                    "settings" -> {
+                        FooterAction(button, onSettings) {
+                            Icon(
+                                Icons.Filled.Settings,
+                                "Settings",
+                                modifier = Modifier.size(glyph.dp),
+                                tint = MaterialTheme.colorScheme.mailInk(),
+                            )
+                        }
                     }
-                    "computer" -> FooterAction(button, onComputer) {
-                        Icon(
-                            Icons.Filled.Computer,
-                            "BlurtText",
-                            modifier = Modifier.size(glyph.dp),
-                            tint = MaterialTheme.colorScheme.mailInk(),
-                        )
+
+                    "computer" -> {
+                        FooterAction(button, onComputer) {
+                            Icon(
+                                Icons.Filled.Computer,
+                                "BlurtText",
+                                modifier = Modifier.size(glyph.dp),
+                                tint = MaterialTheme.colorScheme.mailInk(),
+                            )
+                        }
                     }
-                    "filter" -> FooterAction(button, onFilter) {
-                        Icon(
-                            painterResource(filterGlyph()),
-                            "Filter",
-                            modifier = Modifier.size(glyph.dp),
-                            tint = if (filterActive) MaterialTheme.colorScheme.primary else Color.Unspecified,
-                        )
+
+                    "filter" -> {
+                        FooterAction(button, onFilter) {
+                            Icon(
+                                painterResource(filterGlyph()),
+                                "Filter",
+                                modifier = Modifier.size(glyph.dp),
+                                tint = if (filterActive) MaterialTheme.colorScheme.primary else Color.Unspecified,
+                            )
+                        }
                     }
-                    "trash" -> FooterAction(button, onTrash) {
-                        Icon(
-                            Icons.Filled.Delete,
-                            "Trash",
-                            modifier = Modifier.size(glyph.dp),
-                            tint = MaterialTheme.colorScheme.mailInk(),
-                        )
+
+                    "trash" -> {
+                        FooterAction(button, onTrash) {
+                            Icon(
+                                Icons.Filled.Delete,
+                                "Trash",
+                                modifier = Modifier.size(glyph.dp),
+                                tint = MaterialTheme.colorScheme.mailInk(),
+                            )
+                        }
                     }
                 }
             }
@@ -1103,12 +1177,13 @@ private fun InboxFilterMenu(
     onFilter: (InboxListFilter) -> Unit,
     onContact: (Long) -> Unit,
 ) {
-    val contacts = remember(inbox, archived) {
-        (inbox + archived)
-            .distinctBy { it.threadId }
-            .sortedBy { it.title.lowercase() }
-            .take(40)
-    }
+    val contacts =
+        remember(inbox, archived) {
+            (inbox + archived)
+                .distinctBy { it.threadId }
+                .sortedBy { it.title.lowercase() }
+                .take(40)
+        }
     Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh) {
         Column(
             Modifier
@@ -1142,7 +1217,11 @@ private fun InboxFilterMenu(
 }
 
 @Composable
-private fun FilterChoice(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun FilterChoice(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
     TextButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Text(
             if (selected) "● $label" else label,
@@ -1178,25 +1257,42 @@ private fun filterCaption(
     inbox: List<Conversation>,
     archived: List<Conversation>,
     contactId: Long,
-): String = when (filter) {
-    InboxListFilter.All -> ""
-    InboxListFilter.Unread -> "Unread"
-    InboxListFilter.Read -> "Read"
-    InboxListFilter.Archived -> "Archived"
-    InboxListFilter.Blocked -> "Blocked"
-    InboxListFilter.Contact -> {
-        (inbox + archived).firstOrNull { it.threadId == contactId }?.title?.ifBlank { "Contact" } ?: "Contact"
+): String =
+    when (filter) {
+        InboxListFilter.All -> {
+            ""
+        }
+
+        InboxListFilter.Unread -> {
+            "Unread"
+        }
+
+        InboxListFilter.Read -> {
+            "Read"
+        }
+
+        InboxListFilter.Archived -> {
+            "Archived"
+        }
+
+        InboxListFilter.Blocked -> {
+            "Blocked"
+        }
+
+        InboxListFilter.Contact -> {
+            (inbox + archived).firstOrNull { it.threadId == contactId }?.title?.ifBlank { "Contact" } ?: "Contact"
+        }
     }
-}
 
 @Composable
 private fun InboxSearchField(
     query: String,
     onQuery: (String) -> Unit,
     onClear: () -> Unit,
-    modifier: Modifier = Modifier
-        .fillMaxWidth()
-        .padding(horizontal = 12.dp, vertical = 8.dp),
+    modifier: Modifier =
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
 ) {
     val focus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
@@ -1216,12 +1312,13 @@ private fun InboxSearchField(
         trailingIcon = {
             IconButton(onClick = onClear) { Icon(Icons.Filled.Close, "Clear search") }
         },
-        colors = TextFieldDefaults.colors(
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
-            disabledIndicatorColor = Color.Transparent,
-            focusedContainerColor = MaterialTheme.colorScheme.mailSearch(),
-            unfocusedContainerColor = MaterialTheme.colorScheme.mailSearch(),
-        ),
+        colors =
+            TextFieldDefaults.colors(
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent,
+                focusedContainerColor = MaterialTheme.colorScheme.mailSearch(),
+                unfocusedContainerColor = MaterialTheme.colorScheme.mailSearch(),
+            ),
     )
 }

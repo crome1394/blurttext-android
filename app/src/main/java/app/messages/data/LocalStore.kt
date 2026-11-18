@@ -58,22 +58,24 @@ data class Persisted(
     val attachments: Map<String, String> = emptyMap(),
     val scheduled: List<ScheduledMessage> = emptyList(),
     val gifApiKey: String = "",
-    val ribbon: List<RibbonItem> = listOf(
-        RibbonItem("read"),
-        RibbonItem("unread"),
-        RibbonItem("delete"),
-        RibbonItem("block"),
-        RibbonItem("archive", shown = false),
-        RibbonItem("pin"),
-    ),
+    val ribbon: List<RibbonItem> =
+        listOf(
+            RibbonItem("read"),
+            RibbonItem("unread"),
+            RibbonItem("delete"),
+            RibbonItem("block"),
+            RibbonItem("archive", shown = false),
+            RibbonItem("pin"),
+        ),
     val ribbonTopAt: Int = 2,
     val footerHeight: Int = 68,
-    val footer: List<RibbonItem> = listOf(
-        RibbonItem("filter"),
-        RibbonItem("search"),
-        RibbonItem("settings"),
-        RibbonItem("computer"),
-    ),
+    val footer: List<RibbonItem> =
+        listOf(
+            RibbonItem("filter"),
+            RibbonItem("search"),
+            RibbonItem("settings"),
+            RibbonItem("computer"),
+        ),
     val trash: List<TrashedThread> = emptyList(),
     val autoTrashEnabled: Boolean = false,
     val autoTrashDays: Int = 30,
@@ -88,7 +90,9 @@ data class RibbonItem(
     val shown: Boolean = true,
 )
 
-class LocalStore(private val context: Context) {
+class LocalStore(
+    private val context: Context,
+) {
     private val json = Json { ignoreUnknownKeys = true }
     private val key = stringPreferencesKey("state")
 
@@ -96,9 +100,10 @@ class LocalStore(private val context: Context) {
     var snapshot: Persisted = Persisted()
         private set
 
-    val settings: Flow<Persisted> = context.messagesStore.data.map { prefs ->
-        decode(prefs[key]).also { snapshot = it }
-    }
+    val settings: Flow<Persisted> =
+        context.messagesStore.data.map { prefs ->
+            decode(prefs[key]).also { snapshot = it }
+        }
 
     suspend fun current(): Persisted {
         val value = settings.first()
@@ -127,24 +132,37 @@ class LocalStore(private val context: Context) {
 fun draftKey(threadId: Long): String = "t:$threadId"
 
 fun draftKey(addresses: List<String>): String =
-    "a:" + addresses.map { it.trim() }.filter { it.isNotEmpty() }.sorted().joinToString(",")
+    "a:" +
+        addresses
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .sorted()
+            .joinToString(",")
 
-fun swipeAction(raw: String, fallback: String): String = when (raw) {
-    "delete", "unread", "none" -> raw
-    else -> fallback
-}
+fun swipeAction(
+    raw: String,
+    fallback: String,
+): String =
+    when (raw) {
+        "delete", "unread", "none" -> raw
+        else -> fallback
+    }
 
 val ribbonActionIds = listOf("read", "unread", "delete", "block", "archive", "pin")
 
-fun ribbonLabel(id: String, unpin: Boolean = false): String = when (id) {
-    "read" -> "Read"
-    "unread" -> "Unread"
-    "delete" -> "Delete"
-    "block" -> "Block"
-    "archive" -> "Archive"
-    "pin" -> if (unpin) "Unpin" else "Pin"
-    else -> id
-}
+fun ribbonLabel(
+    id: String,
+    unpin: Boolean = false,
+): String =
+    when (id) {
+        "read" -> "Read"
+        "unread" -> "Unread"
+        "delete" -> "Delete"
+        "block" -> "Block"
+        "archive" -> "Archive"
+        "pin" -> if (unpin) "Unpin" else "Pin"
+        else -> id
+    }
 
 /** Saved order wins. Actions added later are appended, and unknown ids are dropped. */
 fun resolvedRibbon(saved: List<RibbonItem>): List<RibbonItem> {
@@ -153,7 +171,11 @@ fun resolvedRibbon(saved: List<RibbonItem>): List<RibbonItem> {
     return known + missing
 }
 
-fun moveRibbonItem(items: List<RibbonItem>, index: Int, delta: Int): List<RibbonItem> {
+fun moveRibbonItem(
+    items: List<RibbonItem>,
+    index: Int,
+    delta: Int,
+): List<RibbonItem> {
     val target = index + delta
     if (index !in items.indices || target !in items.indices) return items
     val next = items.toMutableList()
@@ -166,20 +188,22 @@ fun ribbonTopCount(raw: Int): Int = raw.coerceIn(1, 5)
 
 val footerActionIds = listOf("search", "settings", "computer", "filter", "trash")
 
-fun footerLabel(id: String): String = when (id) {
-    "search" -> "Search"
-    "settings" -> "Settings"
-    "computer" -> "BlurtText"
-    "filter" -> "Filter"
-    "trash" -> "Trash"
-    else -> id
-}
+fun footerLabel(id: String): String =
+    when (id) {
+        "search" -> "Search"
+        "settings" -> "Settings"
+        "computer" -> "BlurtText"
+        "filter" -> "Filter"
+        "trash" -> "Trash"
+        else -> id
+    }
 
 fun resolvedFooter(saved: List<RibbonItem>): List<RibbonItem> {
     val known = saved.filter { it.id in footerActionIds }.distinctBy { it.id }
-    val missing = footerActionIds.filter { id -> known.none { it.id == id } }.map { id ->
-        RibbonItem(id, shown = id != "trash")
-    }
+    val missing =
+        footerActionIds.filter { id -> known.none { it.id == id } }.map { id ->
+            RibbonItem(id, shown = id != "trash")
+        }
     return known + missing
 }
 
@@ -203,20 +227,22 @@ fun reconcileTrash(
 ): List<TrashedThread> {
     if (conversations.isEmpty()) return trash
     val byId = conversations.associateBy { it.threadId }
-    val kept = trash.filter { entry ->
-        val conversation = byId[entry.threadId] ?: return@filter true
-        conversation.timestamp <= entry.trashedAt
-    }
+    val kept =
+        trash.filter { entry ->
+            val conversation = byId[entry.threadId] ?: return@filter true
+            conversation.timestamp <= entry.trashedAt
+        }
     if (!autoEnabled) return kept
     val cutoff = now - coerceTrashDays(days).toLong() * 86_400_000L
     val already = kept.map { it.threadId }.toSet()
-    val add = conversations.mapNotNull { conversation ->
-        if (conversation.threadId in already) return@mapNotNull null
-        if (conversation.threadId == openThreadId) return@mapNotNull null
-        if (conversation.threadId in pinned) return@mapNotNull null
-        if (conversation.timestamp <= 0L || conversation.timestamp >= cutoff) return@mapNotNull null
-        TrashedThread(conversation.threadId, now)
-    }
+    val add =
+        conversations.mapNotNull { conversation ->
+            if (conversation.threadId in already) return@mapNotNull null
+            if (conversation.threadId == openThreadId) return@mapNotNull null
+            if (conversation.threadId in pinned) return@mapNotNull null
+            if (conversation.timestamp <= 0L || conversation.timestamp >= cutoff) return@mapNotNull null
+            TrashedThread(conversation.threadId, now)
+        }
     return kept + add
 }
 
@@ -233,11 +259,12 @@ fun trashDueForDeletion(
 ): Set<Long> {
     if (!enabled || trash.isEmpty()) return emptySet()
     val cutoff = now - coerceTrashDays(days).toLong() * 86_400_000L
-    return trash.mapNotNull { entry ->
-        if (entry.threadId == openThreadId) return@mapNotNull null
-        if (entry.trashedAt > cutoff) return@mapNotNull null
-        entry.threadId
-    }.toSet()
+    return trash
+        .mapNotNull { entry ->
+            if (entry.threadId == openThreadId) return@mapNotNull null
+            if (entry.trashedAt > cutoff) return@mapNotNull null
+            entry.threadId
+        }.toSet()
 }
 
 fun footerHeightDp(raw: Int): Int = raw.coerceIn(48, 96)
@@ -252,11 +279,10 @@ fun footerGlyphDp(height: Int): Int = (footerButtonDp(height) * 0.52f).toInt().c
 fun swipeCommitPx(widthPx: Float): Float = widthPx * 0.25f
 
 /** A read thread offers unread. An unread thread offers read. */
-fun swipeReadUnreadLabel(unread: Boolean): String =
-    if (unread) "Mark as read" else "Mark as unread"
+fun swipeReadUnreadLabel(unread: Boolean): String = if (unread) "Mark as read" else "Mark as unread"
 
 /** A sideways move waits this long before the row reveals Delete or Read, so a scroll does not flash it. */
-const val swipeArmMs = 100L
+const val SWIPE_ARM_MS = 100L
 
 /**
  * True once the finger has moved sideways past the slop and has been down for [armMs].
@@ -267,7 +293,7 @@ fun swipeRevealReady(
     travelX: Float,
     travelY: Float,
     slop: Float,
-    armMs: Long = swipeArmMs,
+    armMs: Long = SWIPE_ARM_MS,
 ): Boolean {
     val pastSlop = kotlin.math.abs(travelX) > slop * 3f || kotlin.math.abs(travelY) > slop * 3f
     if (!pastSlop) return false
@@ -275,15 +301,23 @@ fun swipeRevealReady(
     return elapsedMs >= armMs
 }
 
-fun addressesMatchBlocked(addresses: List<String>, blocked: List<String>): Boolean {
+fun addressesMatchBlocked(
+    addresses: List<String>,
+    blocked: List<String>,
+): Boolean {
     val keys = blocked.map { raw -> raw.filter { it.isDigit() } }.filter { it.isNotEmpty() }.toSet()
     if (keys.isEmpty()) return false
     return addresses.any { raw -> raw.filter { it.isDigit() } in keys }
 }
 
-fun sameRecipients(left: List<String>, right: List<String>): Boolean {
-    fun key(values: List<String>) = values.map { raw -> raw.filter { it.isDigit() } }
-        .filter { it.isNotEmpty() }
-        .sorted()
+fun sameRecipients(
+    left: List<String>,
+    right: List<String>,
+): Boolean {
+    fun key(values: List<String>) =
+        values
+            .map { raw -> raw.filter { it.isDigit() } }
+            .filter { it.isNotEmpty() }
+            .sorted()
     return key(left) == key(right)
 }

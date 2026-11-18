@@ -20,11 +20,12 @@ fun initials(title: String): String {
 }
 
 /** Label inside the round unread counter. Empty when the thread is caught up. */
-fun unreadBadge(count: Int): String = when {
-    count <= 0 -> ""
-    count > 99 -> "99+"
-    else -> count.toString()
-}
+fun unreadBadge(count: Int): String =
+    when {
+        count <= 0 -> ""
+        count > 99 -> "99+"
+        else -> count.toString()
+    }
 
 fun formatTimestamp(
     millis: Long,
@@ -44,22 +45,33 @@ fun formatTimestamp(
     }
 }
 
-fun preferredSub(defaultSubId: Int, systemSubId: Int): Int =
-    if (defaultSubId >= 0) defaultSubId else systemSubId
+fun preferredSub(
+    defaultSubId: Int,
+    systemSubId: Int,
+): Int = if (defaultSubId >= 0) defaultSubId else systemSubId
 
-fun chosenSub(sims: List<SimLine>, preferred: Int): Int? {
+fun chosenSub(
+    sims: List<SimLine>,
+    preferred: Int,
+): Int? {
     if (sims.isEmpty()) return null
     if (preferred >= 0) sims.firstOrNull { it.id == preferred }?.let { return it.id }
     return sims.first().id
 }
 
-fun simCaption(subId: Int, sims: List<SimLine>): String {
+fun simCaption(
+    subId: Int,
+    sims: List<SimLine>,
+): String {
     if (subId < 0) return ""
     val sim = sims.firstOrNull { it.id == subId } ?: return "SIM"
     return sim.shortName
 }
 
-fun simDetail(subId: Int, sims: List<SimLine>): String {
+fun simDetail(
+    subId: Int,
+    sims: List<SimLine>,
+): String {
     if (subId < 0) return ""
     val sim = sims.firstOrNull { it.id == subId } ?: return "SIM"
     val carrier = sim.carrier.trim()
@@ -68,7 +80,11 @@ fun simDetail(subId: Int, sims: List<SimLine>): String {
     return "${sim.shortName} $carrier"
 }
 
-fun messageParty(incoming: Boolean, senderName: String, address: String): String {
+fun messageParty(
+    incoming: Boolean,
+    senderName: String,
+    address: String,
+): String {
     if (!incoming) return "You"
     val name = senderName.trim()
     val number = address.trim()
@@ -101,7 +117,11 @@ fun messageCaption(
 }
 
 /** A brand-new message has no recipients, so it must not reuse the empty-address draft. */
-fun composeStartText(initialBody: String, initialAddresses: List<String>, savedDraft: String): String {
+fun composeStartText(
+    initialBody: String,
+    initialAddresses: List<String>,
+    savedDraft: String,
+): String {
     if (initialBody.isNotBlank()) return initialBody
     if (initialAddresses.isEmpty()) return ""
     return savedDraft
@@ -126,18 +146,30 @@ fun formatMessageStamp(
 }
 
 /** Day and clock the schedule picker opens on. The date is UTC midnight, which is how Material stores a calendar day. */
-data class SchedulePickerSeed(val dateUtcMillis: Long, val hour: Int, val minute: Int)
+data class SchedulePickerSeed(
+    val dateUtcMillis: Long,
+    val hour: Int,
+    val minute: Int,
+)
 
 fun schedulePickerSeed(
     nowMillis: Long = System.currentTimeMillis(),
     zone: ZoneId = ZoneId.systemDefault(),
 ): SchedulePickerSeed {
     val zdt = Instant.ofEpochMilli(nowMillis).atZone(zone)
-    val dateUtcMillis = zdt.toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+    val dateUtcMillis =
+        zdt
+            .toLocalDate()
+            .atStartOfDay(ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli()
     return SchedulePickerSeed(dateUtcMillis, zdt.hour, zdt.minute)
 }
 
-fun formatFullStamp(millis: Long, zone: ZoneId = ZoneId.systemDefault()): String {
+fun formatFullStamp(
+    millis: Long,
+    zone: ZoneId = ZoneId.systemDefault(),
+): String {
     if (millis <= 0L) return ""
     val zdt = Instant.ofEpochMilli(millis).atZone(zone)
     return zdt.format(DateTimeFormatter.ofPattern("EEE, MMM d, yyyy h:mm:ss a"))

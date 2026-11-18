@@ -4,9 +4,9 @@ import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.graphics.drawable.AnimatedImageDrawable
 import android.os.Build
-import androidx.annotation.RequiresApi
 import android.view.ViewGroup
 import android.widget.ImageView
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -65,16 +65,20 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
 
-private data class GifReaction(val query: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
-
-private val gifReactions = listOf(
-    GifReaction("heart", Icons.Filled.Favorite),
-    GifReaction("thumbs up", Icons.Filled.ThumbUp),
-    GifReaction("thumbs down", Icons.Filled.ThumbDown),
-    GifReaction("party", Icons.Filled.Celebration),
-    GifReaction("smile", Icons.Filled.Mood),
-    GifReaction("sad", Icons.Filled.SentimentDissatisfied),
+private data class GifReaction(
+    val query: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
 )
+
+private val gifReactions =
+    listOf(
+        GifReaction("heart", Icons.Filled.Favorite),
+        GifReaction("thumbs up", Icons.Filled.ThumbUp),
+        GifReaction("thumbs down", Icons.Filled.ThumbDown),
+        GifReaction("party", Icons.Filled.Celebration),
+        GifReaction("smile", Icons.Filled.Mood),
+        GifReaction("sad", Icons.Filled.SentimentDissatisfied),
+    )
 
 @Composable
 fun GifPicker(
@@ -104,13 +108,14 @@ fun GifPicker(
         loading = true
         val result = withContext(Dispatchers.IO) { runCatching { searchGifs(query) } }
         loading = false
-        result.onSuccess {
-            hits = it
-            note = if (it.isEmpty()) "No GIFs found" else null
-        }.onFailure {
-            hits = emptyList()
-            note = it.message ?: "KLIPY search failed"
-        }
+        result
+            .onSuccess {
+                hits = it
+                note = if (it.isEmpty()) "No GIFs found" else null
+            }.onFailure {
+                hits = emptyList()
+                note = it.message ?: "KLIPY search failed"
+            }
     }
     Column(modifier.fillMaxSize()) {
         if (!hasKey) {
@@ -142,37 +147,48 @@ fun GifPicker(
         }
         Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
             when {
-                !hasKey -> Unit
-                loading && hits.isEmpty() -> CircularProgressIndicator()
-                note != null && hits.isEmpty() -> Text(
-                    note.orEmpty(),
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                else -> LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    items(hits, key = { it.id }) { hit ->
-                        GifTile(
-                            url = hit.previewUrl,
-                            cache = cache,
-                            busy = picking != null,
-                            onClick = {
-                                if (picking != null) return@GifTile
-                                picking = hit.id
-                                scope.launch {
-                                    val saved = withContext(Dispatchers.IO) { runCatching { attachGif(hit) } }
-                                    picking = null
-                                    saved.onSuccess(onAttached).onFailure {
-                                        onError(it.message ?: "Could not add that GIF")
+                !hasKey -> {
+                    Unit
+                }
+
+                loading && hits.isEmpty() -> {
+                    CircularProgressIndicator()
+                }
+
+                note != null && hits.isEmpty() -> {
+                    Text(
+                        note.orEmpty(),
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                else -> {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        items(hits, key = { it.id }) { hit ->
+                            GifTile(
+                                url = hit.previewUrl,
+                                cache = cache,
+                                busy = picking != null,
+                                onClick = {
+                                    if (picking != null) return@GifTile
+                                    picking = hit.id
+                                    scope.launch {
+                                        val saved = withContext(Dispatchers.IO) { runCatching { attachGif(hit) } }
+                                        picking = null
+                                        saved.onSuccess(onAttached).onFailure {
+                                            onError(it.message ?: "Could not add that GIF")
+                                        }
                                     }
-                                }
-                            },
-                        )
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -187,15 +203,21 @@ fun GifPicker(
 }
 
 @Composable
-private fun GifTile(url: String, cache: MutableMap<String, ByteArray>, busy: Boolean, onClick: () -> Unit) {
+private fun GifTile(
+    url: String,
+    cache: MutableMap<String, ByteArray>,
+    busy: Boolean,
+    onClick: () -> Unit,
+) {
     val bytes by produceState<ByteArray?>(cache[url], url) {
         cache[url]?.let {
             value = it
             return@produceState
         }
-        val loaded = withContext(Dispatchers.IO) {
-            runCatching { KlipyGifs.download(url, GifSearch.MAX_BYTES) }.getOrNull()
-        }
+        val loaded =
+            withContext(Dispatchers.IO) {
+                runCatching { KlipyGifs.download(url, GifSearch.MAX_BYTES) }.getOrNull()
+            }
         if (loaded != null) cache[url] = loaded
         value = loaded
     }
@@ -217,7 +239,12 @@ private fun GifTile(url: String, cache: MutableMap<String, ByteArray>, busy: Boo
 }
 
 @Composable
-fun AnimatedGif(bytes: ByteArray, modifier: Modifier, description: String, crop: Boolean = false) {
+fun AnimatedGif(
+    bytes: ByteArray,
+    modifier: Modifier,
+    description: String,
+    crop: Boolean = false,
+) {
     if (!KlipyGifs.isGif(bytes) || Build.VERSION.SDK_INT < 28) {
         val still = remember(bytes) { stillGif(bytes) }
         if (still != null) {
@@ -232,10 +259,11 @@ fun AnimatedGif(bytes: ByteArray, modifier: Modifier, description: String, crop:
             modifier = modifier,
             factory = { context ->
                 ImageView(context).apply {
-                    layoutParams = ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                    )
+                    layoutParams =
+                        ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                        )
                     contentDescription = description
                     scaleType = if (crop) ImageView.ScaleType.CENTER_CROP else ImageView.ScaleType.FIT_CENTER
                     val drawable = runCatching { decodeGif(context, bytes) }.getOrNull()
@@ -256,17 +284,20 @@ fun AnimatedGif(bytes: ByteArray, modifier: Modifier, description: String, crop:
     }
 }
 
-private fun stillGif(bytes: ByteArray): ImageBitmap? =
-    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+private fun stillGif(bytes: ByteArray): ImageBitmap? = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
 
 @RequiresApi(28)
-private fun decodeGif(context: android.content.Context, bytes: ByteArray): android.graphics.drawable.Drawable {
-    val source = if (Build.VERSION.SDK_INT >= 31) {
-        ImageDecoder.createSource(ByteBuffer.wrap(bytes))
-    } else {
-        val file = java.io.File.createTempFile("gifview", ".gif", context.cacheDir)
-        file.writeBytes(bytes)
-        ImageDecoder.createSource(file).also { file.deleteOnExit() }
-    }
+private fun decodeGif(
+    context: android.content.Context,
+    bytes: ByteArray,
+): android.graphics.drawable.Drawable {
+    val source =
+        if (Build.VERSION.SDK_INT >= 31) {
+            ImageDecoder.createSource(ByteBuffer.wrap(bytes))
+        } else {
+            val file = java.io.File.createTempFile("gifview", ".gif", context.cacheDir)
+            file.writeBytes(bytes)
+            ImageDecoder.createSource(file).also { file.deleteOnExit() }
+        }
     return ImageDecoder.decodeDrawable(source)
 }

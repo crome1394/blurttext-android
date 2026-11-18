@@ -8,19 +8,22 @@ package app.messages.data
 object VerificationCodes {
     private const val WINDOW = 60
 
-    private val keywords = Regex(
-        """(?i)(?<![A-Za-z0-9])(?:verification|verify|passcodes?|passwords?|codes?|otps?|pins?|log[\s-]?in|one[\s-]?time|2[\s-]?fa|two[\s-]?factor|security|auth)(?![A-Za-z0-9])""",
-    )
+    private val keywords =
+        Regex(
+            """(?i)(?<![A-Za-z0-9])(?:verification|verify|passcodes?|passwords?|codes?|otps?|pins?|log[\s-]?in|one[\s-]?time|2[\s-]?fa|two[\s-]?factor|security|auth)(?![A-Za-z0-9])""",
+        )
     private val prefixed = Regex("""(?<![A-Za-z0-9])[A-Za-z]-(\d{4,8})(?!\d)""")
     private val hyphenated = Regex("""(?<![A-Za-z0-9])(\d{2,6})-(\d{2,6})(?!\d)""")
     private val plain = Regex("""(?<!\d)(\d{4,8})(?!\d)""")
-    private val mixed = Regex(
-        """(?<![A-Za-z0-9])(?=[A-Za-z0-9]*\d)(?=[A-Za-z0-9]*[A-Za-z])[A-Za-z0-9]{6,8}(?![A-Za-z0-9])""",
-    )
+    private val mixed =
+        Regex(
+            """(?<![A-Za-z0-9])(?=[A-Za-z0-9]*\d)(?=[A-Za-z0-9]*[A-Za-z])[A-Za-z0-9]{6,8}(?![A-Za-z0-9])""",
+        )
     private val dates = Regex("""\b(?:\d{1,4}[/-]\d{1,2}[/-]\d{1,4}|\d{4}-\d{2}-\d{2})\b""")
-    private val monthYear = Regex(
-        """(?i)\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{4}\b""",
-    )
+    private val monthYear =
+        Regex(
+            """(?i)\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{4}\b""",
+        )
     private val localPhone = Regex("""^\d{3}-\d{4}$""")
     private val areaBefore = Regex("""(?:\+?\d[\d\s().-]{0,6}|\(\d{3}\)[\s.-]*)$""")
     private val yearFiller = Regex("""(?i)[\s:.#-]*(?:is|was)?[\s:.#-]*""")
@@ -31,7 +34,12 @@ object VerificationCodes {
         if (keys.isEmpty()) return null
         val blocked = (dates.findAll(text) + monthYear.findAll(text)).map { it.range.first to it.range.last + 1 }.toList()
         val found = ArrayList<Hit>()
-        fun add(code: String, start: Int, end: Int) {
+
+        fun add(
+            code: String,
+            start: Int,
+            end: Int,
+        ) {
             if (code.isEmpty()) return
             if (found.any { it.start < end && start < it.end }) return
             if (blocked.any { it.first < end && start < it.second }) return
@@ -64,25 +72,41 @@ object VerificationCodes {
             add(match.value, match.range.first, match.range.last + 1)
         }
         for (key in keys) {
-            val near = found.mapNotNull { hit ->
-                val gap = gap(key.first, key.second, hit.start, hit.end)
-                if (gap > WINDOW) null else hit to gap
-            }
+            val near =
+                found.mapNotNull { hit ->
+                    val gap = gap(key.first, key.second, hit.start, hit.end)
+                    if (gap > WINDOW) null else hit to gap
+                }
             if (near.isEmpty()) continue
             return near.minWith(compareBy({ it.second }, { kotlin.math.abs(it.first.code.length - 6) }, { it.first.start })).first.code
         }
         return null
     }
 
-    private data class Hit(val code: String, val start: Int, val end: Int)
+    private data class Hit(
+        val code: String,
+        val start: Int,
+        val end: Int,
+    )
 
-    private fun gap(aStart: Int, aEnd: Int, bStart: Int, bEnd: Int): Int = when {
-        aEnd <= bStart -> bStart - aEnd
-        bEnd <= aStart -> aStart - bEnd
-        else -> 0
-    }
+    private fun gap(
+        aStart: Int,
+        aEnd: Int,
+        bStart: Int,
+        bEnd: Int,
+    ): Int =
+        when {
+            aEnd <= bStart -> bStart - aEnd
+            bEnd <= aStart -> aStart - bEnd
+            else -> 0
+        }
 
-    private fun acceptable(text: String, code: String, start: Int, keys: List<Pair<Int, Int>>): Boolean {
+    private fun acceptable(
+        text: String,
+        code: String,
+        start: Int,
+        keys: List<Pair<Int, Int>>,
+    ): Boolean {
         if (isCalendarStamp(code)) return false
         if (code.length != 4) return true
         val year = code.toIntOrNull() ?: return true
@@ -100,7 +124,11 @@ object VerificationCodes {
         return year in 1900..2099 && month in 1..12 && day in 1..31
     }
 
-    private fun isMoney(text: String, start: Int, end: Int): Boolean {
+    private fun isMoney(
+        text: String,
+        start: Int,
+        end: Int,
+    ): Boolean {
         if (start > 0 && text[start - 1] == ',') return true
         if (end < text.length && text[end] == ',') return true
         var i = start - 1
@@ -108,20 +136,28 @@ object VerificationCodes {
         if (i >= 0 && text[i] in "$€£") return true
         if (i >= 2 && text.substring(i - 2, i + 1).equals("USD", ignoreCase = true)) return true
         if (end < text.length && text[end] == '.') {
-            val cents = end + 2 < text.length && text[end + 1].isDigit() && text[end + 2].isDigit() &&
-                (end + 3 >= text.length || !text[end + 3].isDigit())
+            val cents =
+                end + 2 < text.length && text[end + 1].isDigit() && text[end + 2].isDigit() &&
+                    (end + 3 >= text.length || !text[end + 3].isDigit())
             if (cents) return true
         }
         return false
     }
 
-    private fun insideLink(text: String, start: Int): Boolean {
+    private fun insideLink(
+        text: String,
+        start: Int,
+    ): Boolean {
         val from = text.lastIndexOfAny(charArrayOf(' ', '\n', '\t'), start - 1).let { if (it < 0) 0 else it + 1 }
         val token = text.substring(from, start).lowercase()
         return token.startsWith("http://") || token.startsWith("https://") || token.startsWith("www.")
     }
 
-    private fun looksLikePhone(text: String, start: Int, raw: String): Boolean {
+    private fun looksLikePhone(
+        text: String,
+        start: Int,
+        raw: String,
+    ): Boolean {
         if (localPhone.matches(raw)) return true
         if (start > 0 && text[start - 1] == '+') return true
         val end = start + raw.length
@@ -134,7 +170,11 @@ object VerificationCodes {
     }
 
     /** Digits joined to this token by spaces, dots, or hyphens, as in 1-800-555-0199. */
-    private fun phoneSpanDigits(text: String, start: Int, end: Int): Int {
+    private fun phoneSpanDigits(
+        text: String,
+        start: Int,
+        end: Int,
+    ): Int {
         val phone = "0123456789- ().".toSet()
         var a = start
         var b = end

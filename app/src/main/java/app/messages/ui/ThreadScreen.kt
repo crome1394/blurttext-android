@@ -14,6 +14,7 @@ import android.provider.ContactsContract
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,28 +26,25 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import app.messages.data.MessageLinks
-import app.messages.data.VerificationCodes
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -59,6 +57,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -74,17 +73,17 @@ import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.Gif
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
@@ -113,16 +112,14 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
@@ -131,46 +128,54 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.messages.data.ChatMessage
 import app.messages.data.Delivery
+import app.messages.data.MessageLinks
 import app.messages.data.ScheduledMessage
 import app.messages.data.SimLine
+import app.messages.data.VerificationCodes
 import app.messages.data.chosenSub
 import app.messages.data.composeStartText
 import app.messages.data.draftKey
+import app.messages.data.formatFullStamp
+import app.messages.data.formatMessageStamp
+import app.messages.data.formatTimestamp
 import app.messages.data.messageCaption
 import app.messages.data.messageParty
 import app.messages.data.mimeForPath
 import app.messages.data.preferredSub
+import app.messages.data.sameRecipients
+import app.messages.data.schedulePickerSeed
 import app.messages.data.simCaption
 import app.messages.data.simDetail
 import app.messages.sms.BubbleReaction
@@ -180,11 +185,6 @@ import app.messages.sms.reactionDescription
 import app.messages.sms.reactionLayout
 import app.messages.sms.tapbackBody
 import app.messages.sms.tapbackSymbols
-import app.messages.data.formatFullStamp
-import app.messages.data.formatMessageStamp
-import app.messages.data.formatTimestamp
-import app.messages.data.sameRecipients
-import app.messages.data.schedulePickerSeed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -196,7 +196,10 @@ import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun ThreadScreen(vm: MessagesViewModel, threadId: Long) {
+fun ThreadScreen(
+    vm: MessagesViewModel,
+    threadId: Long,
+) {
     val context = LocalContext.current
     val messages by vm.messages(threadId).collectAsStateWithLifecycle(emptyList())
     val settings by vm.settings.collectAsStateWithLifecycle()
@@ -218,57 +221,69 @@ fun ThreadScreen(vm: MessagesViewModel, threadId: Long) {
     var schedulingReplace by remember(threadId) { mutableStateOf<String?>(null) }
     val scheduled = settings.scheduled.filter { sameRecipients(it.addresses, addresses) }
     val listState = rememberLazyListState()
-    val ascending = remember(messages) {
-        val ordered = app.lantext.sms.orderEchoes(
-            messages,
-            { it.key },
-            { it.threadId.toString() },
-            { it.body },
-            { it.timestamp },
-            { it.incoming },
-        )
-        val reactions = reactionLayout(ordered)
-        ordered.filter { it.key !in reactions.hiddenKeys }.map { message ->
-            message to reactions.byKey[message.key].orEmpty()
+    val ascending =
+        remember(messages) {
+            val ordered =
+                app.lantext.sms.orderEchoes(
+                    messages,
+                    { it.key },
+                    { it.threadId.toString() },
+                    { it.body },
+                    { it.timestamp },
+                    { it.incoming },
+                )
+            val reactions = reactionLayout(ordered)
+            ordered.filter { it.key !in reactions.hiddenKeys }.map { message ->
+                message to reactions.byKey[message.key].orEmpty()
+            }
         }
-    }
     var stickToBottom by remember(threadId) { mutableStateOf(true) }
     var chooseNumber by remember { mutableStateOf<String?>(null) }
     var askLocation by remember { mutableStateOf(false) }
     var locationLink by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-    val pickContact = rememberLauncherForActivityResult(ActivityResultContracts.PickContact()) { uri ->
-        val number = chooseNumber
-        chooseNumber = null
-        if (uri != null && !number.isNullOrBlank()) vm.addNumberToContact(uri, number)
-    }
-    val writeContacts = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        val number = chooseNumber
-        if (granted && !number.isNullOrBlank()) pickContact.launch(null)
-        else {
+    val pickContact =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickContact()) { uri ->
+            val number = chooseNumber
             chooseNumber = null
-            if (!granted) vm.note("Contacts permission is needed to choose a contact")
+            if (uri != null && !number.isNullOrBlank()) vm.addNumberToContact(uri, number)
         }
-    }
+    val writeContacts =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            val number = chooseNumber
+            if (granted && !number.isNullOrBlank()) {
+                pickContact.launch(null)
+            } else {
+                chooseNumber = null
+                if (!granted) vm.note("Contacts permission is needed to choose a contact")
+            }
+        }
+
     fun startLocation() {
         requestDeviceLocation(context) { link ->
             scope.launch {
-                if (link == null) vm.note("Location is unavailable")
-                else {
+                if (link == null) {
+                    vm.note("Location is unavailable")
+                } else {
                     locationLink = link
                     askLocation = true
                 }
             }
         }
     }
-    val fineLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
-        if (granted[Manifest.permission.ACCESS_FINE_LOCATION] == true) startLocation()
-        else vm.note("Location permission is needed to send where you are")
-    }
+    val fineLocation =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
+            if (granted[Manifest.permission.ACCESS_FINE_LOCATION] == true) {
+                startLocation()
+            } else {
+                vm.note("Location permission is needed to send where you are")
+            }
+        }
 
-    val shareContact = rememberContactShare(load = vm::contactCard, onError = vm::note) { card ->
-        text = if (text.isBlank()) card else text.trimEnd() + "\n" + card
-    }
+    val shareContact =
+        rememberContactShare(load = vm::contactCard, onError = vm::note) { card ->
+            text = if (text.isBlank()) card else text.trimEnd() + "\n" + card
+        }
     DisposableEffect(threadId) {
         vm.setActiveThread(threadId)
         onDispose {
@@ -329,13 +344,18 @@ fun ThreadScreen(vm: MessagesViewModel, threadId: Long) {
     val dial = addresses.firstOrNull().orEmpty()
     var contactCard by remember { mutableStateOf<Pair<String, String>?>(null) }
     var contactGroup by remember { mutableStateOf(false) }
-    fun showContact(number: String, title: String) {
+
+    fun showContact(
+        number: String,
+        title: String,
+    ) {
         scope.launch {
             val uri = withContext(Dispatchers.IO) { vm.contactUri(number) }
             val opened = uri != null && runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }.isSuccess
             if (!opened) contactCard = title.ifBlank { number } to number
         }
     }
+
     fun openThreadContact() {
         val numbers = addresses.filter { it.isNotBlank() }
         when {
@@ -352,13 +372,14 @@ fun ThreadScreen(vm: MessagesViewModel, threadId: Long) {
         contentColor = ink,
         topBar = {
             TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = page,
-                    scrolledContainerColor = page,
-                    navigationIconContentColor = ink,
-                    titleContentColor = ink,
-                    actionIconContentColor = ink,
-                ),
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = page,
+                        scrolledContainerColor = page,
+                        navigationIconContentColor = ink,
+                        titleContentColor = ink,
+                        actionIconContentColor = ink,
+                    ),
                 title = {},
                 navigationIcon = {
                     IconButton(onClick = vm::pop) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
@@ -375,10 +396,11 @@ fun ThreadScreen(vm: MessagesViewModel, threadId: Long) {
                             if (addresses.isEmpty()) {
                                 vm.note("This conversation has no phone number")
                             } else {
-                                val granted = ContextCompat.checkSelfPermission(
-                                    context,
-                                    Manifest.permission.ACCESS_FINE_LOCATION,
-                                ) == PackageManager.PERMISSION_GRANTED
+                                val granted =
+                                    ContextCompat.checkSelfPermission(
+                                        context,
+                                        Manifest.permission.ACCESS_FINE_LOCATION,
+                                    ) == PackageManager.PERMISSION_GRANTED
                                 if (granted) startLocation() else fineLocation.launch(locationPermissions())
                             }
                         }, leadingIcon = { Icon(Icons.Filled.LocationOn, null) })
@@ -420,18 +442,20 @@ fun ThreadScreen(vm: MessagesViewModel, threadId: Long) {
                                 vm.note("This conversation has no phone number")
                             } else {
                                 chooseNumber = number
-                                val granted = ContextCompat.checkSelfPermission(
-                                    context,
-                                    Manifest.permission.WRITE_CONTACTS,
-                                ) == PackageManager.PERMISSION_GRANTED
+                                val granted =
+                                    ContextCompat.checkSelfPermission(
+                                        context,
+                                        Manifest.permission.WRITE_CONTACTS,
+                                    ) == PackageManager.PERMISSION_GRANTED
                                 if (granted) pickContact.launch(null) else writeContacts.launch(Manifest.permission.WRITE_CONTACTS)
                             }
                         }, leadingIcon = { Icon(Icons.Filled.PersonAdd, null) })
                         DropdownMenuItem(text = { Text("Export text") }, onClick = {
                             menu = false
-                            val share = Intent(Intent.ACTION_SEND)
-                                .setType("text/plain")
-                                .putExtra(Intent.EXTRA_TEXT, vm.exportThreadText(threadId))
+                            val share =
+                                Intent(Intent.ACTION_SEND)
+                                    .setType("text/plain")
+                                    .putExtra(Intent.EXTRA_TEXT, vm.exportThreadText(threadId))
                             context.startActivity(Intent.createChooser(share, "Export conversation"))
                         }, leadingIcon = { Icon(Icons.Filled.Share, null) })
                         DropdownMenuItem(text = { Text("Delete conversation") }, onClick = {
@@ -518,10 +542,11 @@ fun ThreadScreen(vm: MessagesViewModel, threadId: Long) {
                         if (addresses.isEmpty()) {
                             vm.note("This conversation has no phone number")
                         } else {
-                            val granted = ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.ACCESS_FINE_LOCATION,
-                            ) == PackageManager.PERMISSION_GRANTED
+                            val granted =
+                                ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                ) == PackageManager.PERMISSION_GRANTED
                             if (granted) startLocation() else fineLocation.launch(locationPermissions())
                         }
                     },
@@ -543,98 +568,105 @@ fun ThreadScreen(vm: MessagesViewModel, threadId: Long) {
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .clickable(onClick = ::openThreadContact)
-                .semantics { contentDescription = "Contact details" }
-                .padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 4.dp),
-        ) {
-            Text(
-                threadTitle,
-                style = MaterialTheme.typography.headlineSmall,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                color = ink,
-            )
-            if (addresses.isNotEmpty()) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = ::openThreadContact)
+                    .semantics { contentDescription = "Contact details" }
+                    .padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 4.dp),
+            ) {
                 Text(
-                    addresses.joinToString(),
-                    modifier = Modifier.padding(top = 2.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    threadTitle,
+                    style = MaterialTheme.typography.headlineSmall,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                    color = ink,
                 )
-            }
-        }
-        Surface(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(start = 8.dp, end = 8.dp, top = 12.dp, bottom = 8.dp),
-            shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.mailCard(),
-            contentColor = ink,
-            tonalElevation = 0.dp,
-            shadowElevation = 12.dp,
-        ) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            itemsIndexed(ascending, key = { _, row -> row.first.key }) { index, row ->
-                val message = row.first
-                val reactions = row.second
-                val previous = ascending.getOrNull(index - 1)?.first
-                if (previous == null || message.timestamp - previous.timestamp > 30 * 60 * 1000) {
+                if (addresses.isNotEmpty()) {
                     Text(
-                        formatMessageStamp(message.timestamp),
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                        style = MaterialTheme.typography.labelMedium,
+                        addresses.joinToString(),
+                        modifier = Modifier.padding(top = 2.dp),
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
-                val caption = messageCaption(
-                    incoming = message.incoming,
-                    party = messageParty(message.incoming, message.senderName, message.address),
-                    time = formatMessageStamp(message.timestamp),
-                    mms = message.mmsId != null,
-                    sim = simDetail(message.subId, sims),
-                    showDirection = settings.detailDirection,
-                    showParty = settings.detailParty,
-                    showTime = settings.detailTime,
-                    showType = settings.detailType,
-                    showSim = settings.detailSim,
-                )
-                val indicator = if (settings.showSimIndicator) simCaption(message.subId, sims) else ""
-                MessageBubble(
-                    message = message,
-                    reactions = reactions,
-                    group = addresses.size > 1,
-                    indicator = indicator,
-                    caption = caption,
-                    loadPart = vm::loadPart,
-                    onLongPress = { selected = message },
-                    onRetry = { if (message.status == Delivery.FAILED && message.attachments.isEmpty()) vm.retry(message) },
-                    onImage = { preview = it },
-                    onOpenLink = { openMessageLink(context, it) { vm.note(it) } },
-                    onCopyCode = { code ->
-                        val copied = copyVerificationCode(context, code)
-                        vm.note(if (copied) "Code copied" else "Could not copy that code")
-                    },
-                    onOpenPart = { part, mime ->
-                        val uri = vm.stagePart(part, mime) ?: return@MessageBubble
-                        val view = Intent(Intent.ACTION_VIEW).setDataAndType(uri, mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        runCatching { context.startActivity(view) }
-                    },
-                )
             }
-        }
-        }
+            Surface(
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(start = 8.dp, end = 8.dp, top = 12.dp, bottom = 8.dp),
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.mailCard(),
+                contentColor = ink,
+                tonalElevation = 0.dp,
+                shadowElevation = 12.dp,
+            ) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding =
+                        androidx.compose.foundation.layout
+                            .PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    itemsIndexed(ascending, key = { _, row -> row.first.key }) { index, row ->
+                        val message = row.first
+                        val reactions = row.second
+                        val previous = ascending.getOrNull(index - 1)?.first
+                        if (previous == null || message.timestamp - previous.timestamp > 30 * 60 * 1000) {
+                            Text(
+                                formatMessageStamp(message.timestamp),
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            )
+                        }
+                        val caption =
+                            messageCaption(
+                                incoming = message.incoming,
+                                party = messageParty(message.incoming, message.senderName, message.address),
+                                time = formatMessageStamp(message.timestamp),
+                                mms = message.mmsId != null,
+                                sim = simDetail(message.subId, sims),
+                                showDirection = settings.detailDirection,
+                                showParty = settings.detailParty,
+                                showTime = settings.detailTime,
+                                showType = settings.detailType,
+                                showSim = settings.detailSim,
+                            )
+                        val indicator = if (settings.showSimIndicator) simCaption(message.subId, sims) else ""
+                        MessageBubble(
+                            message = message,
+                            reactions = reactions,
+                            group = addresses.size > 1,
+                            indicator = indicator,
+                            caption = caption,
+                            loadPart = vm::loadPart,
+                            onLongPress = { selected = message },
+                            onRetry = { if (message.status == Delivery.FAILED && message.attachments.isEmpty()) vm.retry(message) },
+                            onImage = { preview = it },
+                            onOpenLink = { openMessageLink(context, it) { vm.note(it) } },
+                            onCopyCode = { code ->
+                                val copied = copyVerificationCode(context, code)
+                                vm.note(if (copied) "Code copied" else "Could not copy that code")
+                            },
+                            onOpenPart = { part, mime ->
+                                val uri = vm.stagePart(part, mime) ?: return@MessageBubble
+                                val view =
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                    ).setDataAndType(uri, mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                runCatching { context.startActivity(view) }
+                            },
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -727,10 +759,11 @@ fun ThreadScreen(vm: MessagesViewModel, threadId: Long) {
                         TextButton(onClick = {
                             contactCard = null
                             chooseNumber = number
-                            val granted = ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.WRITE_CONTACTS,
-                            ) == PackageManager.PERMISSION_GRANTED
+                            val granted =
+                                ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.WRITE_CONTACTS,
+                                ) == PackageManager.PERMISSION_GRANTED
                             if (granted) pickContact.launch(null) else writeContacts.launch(Manifest.permission.WRITE_CONTACTS)
                         }) { Text("Choose a contact") }
                     }
@@ -763,11 +796,12 @@ fun ThreadScreen(vm: MessagesViewModel, threadId: Long) {
     preview?.let { partId ->
         Dialog(
             onDismissRequest = { preview = null },
-            properties = DialogProperties(
-                usePlatformDefaultWidth = false,
-                decorFitsSystemWindows = false,
-                dismissOnClickOutside = false,
-            ),
+            properties =
+                DialogProperties(
+                    usePlatformDefaultWidth = false,
+                    decorFitsSystemWindows = false,
+                    dismissOnClickOutside = false,
+                ),
         ) {
             Box(
                 Modifier
@@ -829,7 +863,12 @@ fun ThreadScreen(vm: MessagesViewModel, threadId: Long) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ComposeScreen(vm: MessagesViewModel, initialAddresses: List<String>, initialBody: String, initialAttachment: String?) {
+fun ComposeScreen(
+    vm: MessagesViewModel,
+    initialAddresses: List<String>,
+    initialBody: String,
+    initialAttachment: String?,
+) {
     val context = LocalContext.current
     val settings by vm.settings.collectAsStateWithLifecycle()
     val sending by vm.sending.collectAsStateWithLifecycle()
@@ -868,24 +907,31 @@ fun ComposeScreen(vm: MessagesViewModel, initialAddresses: List<String>, initial
         runCatching { toFocus.requestFocus() }
         keyboard?.show()
     }
-    val shareContact = rememberContactShare(load = vm::contactCard, onError = vm::note) { card ->
-        text = if (text.isBlank()) card else text.trimEnd() + "\n" + card
-    }
+    val shareContact =
+        rememberContactShare(load = vm::contactCard, onError = vm::note) { card ->
+            text = if (text.isBlank()) card else text.trimEnd() + "\n" + card
+        }
+
     fun startLocation() {
         requestDeviceLocation(context) { link ->
             scope.launch {
-                if (link == null) vm.note("Location is unavailable")
-                else {
+                if (link == null) {
+                    vm.note("Location is unavailable")
+                } else {
                     locationLink = link
                     askLocation = true
                 }
             }
         }
     }
-    val fineLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
-        if (granted[Manifest.permission.ACCESS_FINE_LOCATION] == true) startLocation()
-        else vm.note("Location permission is needed to send where you are")
-    }
+    val fineLocation =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
+            if (granted[Manifest.permission.ACCESS_FINE_LOCATION] == true) {
+                startLocation()
+            } else {
+                vm.note("Location permission is needed to send where you are")
+            }
+        }
     DisposableEffect(Unit) {
         onDispose {
             if (latestRecipients.isEmpty()) {
@@ -898,6 +944,7 @@ fun ComposeScreen(vm: MessagesViewModel, initialAddresses: List<String>, initial
             }
         }
     }
+
     fun sendNow() {
         val addresses = (recipients + splitRecipients(entry)).distinct()
         if (addresses.isEmpty() || sending) return
@@ -919,16 +966,17 @@ fun ComposeScreen(vm: MessagesViewModel, initialAddresses: List<String>, initial
         val floor = if (280.dp < cap) 280.dp else cap
         val cardHeight = (maxHeight * fraction.value).coerceIn(floor, cap)
         Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(cardHeight)
-                .pointerInput(Unit) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            awaitPointerEvent()
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(cardHeight)
+                    .pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                awaitPointerEvent()
+                            }
                         }
-                    }
-                },
+                    },
             shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             shadowElevation = 6.dp,
@@ -953,10 +1001,11 @@ fun ComposeScreen(vm: MessagesViewModel, initialAddresses: List<String>, initial
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         "New message",
-                        modifier = Modifier
-                            .weight(1f)
-                            .dragToResize(spanPx, fraction)
-                            .padding(start = 16.dp),
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .dragToResize(spanPx, fraction)
+                                .padding(start = 16.dp),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -981,14 +1030,15 @@ fun ComposeScreen(vm: MessagesViewModel, initialAddresses: List<String>, initial
                             if (recipients.isNotEmpty()) Text(recipients.joinToString())
                         },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = {
-                            val added = splitRecipients(entry)
-                            if (added.isNotEmpty()) {
-                                recipients = (recipients + added).distinct()
-                                entry = ""
-                                vm.recipientQuery.value = ""
-                            }
-                        }),
+                        keyboardActions =
+                            KeyboardActions(onDone = {
+                                val added = splitRecipients(entry)
+                                if (added.isNotEmpty()) {
+                                    recipients = (recipients + added).distinct()
+                                    entry = ""
+                                    vm.recipientQuery.value = ""
+                                }
+                            }),
                     )
                     if (entry.isNotBlank()) {
                         suggestions.forEach { hit ->
@@ -1064,10 +1114,11 @@ fun ComposeScreen(vm: MessagesViewModel, initialAddresses: List<String>, initial
                     attachGif = vm::attachGif,
                     onOpenSettings = vm::showSettings,
                     onLocation = {
-                        val granted = ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.ACCESS_FINE_LOCATION,
-                        ) == PackageManager.PERMISSION_GRANTED
+                        val granted =
+                            ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                            ) == PackageManager.PERMISSION_GRANTED
                         if (granted) startLocation() else fineLocation.launch(locationPermissions())
                     },
                     onContact = shareContact,
@@ -1207,22 +1258,27 @@ private fun Composer(
     LaunchedEffect(text) {
         if (field.text != text) field = TextFieldValue(text, TextRange(text.length))
     }
-    val photos = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        scope.launch {
-            val result = withContext(Dispatchers.IO) { runCatching { copyAttachment(uri) } }
-            result.onSuccess { attachNow.value(it) }
-                .onFailure { reportError.value(it.message ?: "Could not attach that picture") }
+    val photos =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            scope.launch {
+                val result = withContext(Dispatchers.IO) { runCatching { copyAttachment(uri) } }
+                result
+                    .onSuccess { attachNow.value(it) }
+                    .onFailure { reportError.value(it.message ?: "Could not attach that picture") }
+            }
         }
-    }
-    val photoFallback = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        scope.launch {
-            val result = withContext(Dispatchers.IO) { runCatching { copyAttachment(uri) } }
-            result.onSuccess { attachNow.value(it) }
-                .onFailure { reportError.value(it.message ?: "Could not attach that picture") }
+    val photoFallback =
+        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            scope.launch {
+                val result = withContext(Dispatchers.IO) { runCatching { copyAttachment(uri) } }
+                result
+                    .onSuccess { attachNow.value(it) }
+                    .onFailure { reportError.value(it.message ?: "Could not attach that picture") }
+            }
         }
-    }
+
     fun openPhotos() {
         val request = PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
         if (runCatching { photos.launch(request) }.isFailure) {
@@ -1231,22 +1287,27 @@ private fun Composer(
             }
         }
     }
-    val videos = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        scope.launch {
-            val result = withContext(Dispatchers.IO) { runCatching { takeVideo(uri) } }
-            result.onSuccess { attachNow.value(it) }
-                .onFailure { reportError.value(it.message ?: "Could not attach that video") }
+    val videos =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            scope.launch {
+                val result = withContext(Dispatchers.IO) { runCatching { takeVideo(uri) } }
+                result
+                    .onSuccess { attachNow.value(it) }
+                    .onFailure { reportError.value(it.message ?: "Could not attach that video") }
+            }
         }
-    }
-    val videoFallback = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        scope.launch {
-            val result = withContext(Dispatchers.IO) { runCatching { takeVideo(uri) } }
-            result.onSuccess { attachNow.value(it) }
-                .onFailure { reportError.value(it.message ?: "Could not attach that video") }
+    val videoFallback =
+        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            scope.launch {
+                val result = withContext(Dispatchers.IO) { runCatching { takeVideo(uri) } }
+                result
+                    .onSuccess { attachNow.value(it) }
+                    .onFailure { reportError.value(it.message ?: "Could not attach that video") }
+            }
         }
-    }
+
     fun openVideos() {
         val request = PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
         if (runCatching { videos.launch(request) }.isFailure) {
@@ -1255,13 +1316,15 @@ private fun Composer(
             }
         }
     }
-    val camera = rememberLauncherForActivityResult(remember { CapturePhoto() }) { ok ->
-        val uri = cameraUri
-        if (ok && uri != null) {
-            runCatching { onAttachment(copyAttachment(uri)) }
-                .onFailure { onError(it.message ?: "Could not attach that picture") }
+    val camera =
+        rememberLauncherForActivityResult(remember { CapturePhoto() }) { ok ->
+            val uri = cameraUri
+            if (ok && uri != null) {
+                runCatching { onAttachment(copyAttachment(uri)) }
+                    .onFailure { onError(it.message ?: "Could not attach that picture") }
+            }
         }
-    }
+
     fun queueShot() {
         try {
             val dir = File(context.cacheDir, "camera").apply { mkdirs() }
@@ -1277,12 +1340,13 @@ private fun Composer(
             onError(t.message ?: "Could not open the camera")
         }
     }
-    val cameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (!awaitCamera) return@rememberLauncherForActivityResult
-        awaitCamera = false
-        if (!granted) onError("Camera permission is needed to take a picture")
-        queueShot()
-    }
+    val cameraPermission =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (!awaitCamera) return@rememberLauncherForActivityResult
+            awaitCamera = false
+            if (!granted) onError("Camera permission is needed to take a picture")
+            queueShot()
+        }
     LaunchedEffect(shotRequest) {
         if (shotRequest == 0) return@LaunchedEffect
         val uri = cameraUri ?: return@LaunchedEffect
@@ -1294,6 +1358,7 @@ private fun Composer(
         runCatching { camera.launch(uri) }
             .onFailure { onError(it.message ?: "No camera app is available") }
     }
+
     fun insertAtCursor(glyph: String) {
         val start = minOf(field.selection.start, field.selection.end).coerceIn(0, field.text.length)
         val end = maxOf(field.selection.start, field.selection.end).coerceIn(0, field.text.length)
@@ -1302,6 +1367,7 @@ private fun Composer(
         field = TextFieldValue(next, TextRange(cursor))
         onText(next)
     }
+
     fun openCamera() {
         val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
         if (granted) {
@@ -1336,12 +1402,13 @@ private fun Composer(
                 val video = kind.startsWith("video/")
                 val gif = kind == "image/gif"
                 val image = kind.startsWith("image/")
-                val label = when {
-                    video -> "Video ready to send"
-                    gif -> "GIF ready to send"
-                    image -> "Photo ready to send"
-                    else -> "Attachment ready to send"
-                }
+                val label =
+                    when {
+                        video -> "Video ready to send"
+                        gif -> "GIF ready to send"
+                        image -> "Photo ready to send"
+                        else -> "Attachment ready to send"
+                    }
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant,
@@ -1388,10 +1455,11 @@ private fun Composer(
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     shadowElevation = 6.dp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp)
-                        .height(shown),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                            .height(shown),
                 ) {
                     Column(Modifier.fillMaxSize()) {
                         Box(
@@ -1412,10 +1480,11 @@ private fun Composer(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 if (panel == ComposerPanel.Emoji) "Emoji" else "GIFs",
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .dragComposerPanel(density, minDp, maxDp, panelHeight)
-                                    .padding(start = 16.dp),
+                                modifier =
+                                    Modifier
+                                        .weight(1f)
+                                        .dragComposerPanel(density, minDp, maxDp, panelHeight)
+                                        .padding(start = 16.dp),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )
@@ -1429,10 +1498,11 @@ private fun Composer(
                                     OutlinedTextField(
                                         value = emojiQuery,
                                         onValueChange = { emojiQuery = it },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 12.dp)
-                                            .semantics { contentDescription = "Search emoji" },
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 12.dp)
+                                                .semantics { contentDescription = "Search emoji" },
                                         placeholder = { Text("Search emoji") },
                                         singleLine = true,
                                     )
@@ -1500,10 +1570,11 @@ private fun Composer(
             Row(verticalAlignment = Alignment.Bottom) {
                 Box {
                     Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(CircleShape)
-                            .clickable { plus = true },
+                        modifier =
+                            Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .clickable { plus = true },
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
@@ -1580,16 +1651,17 @@ private fun Composer(
                         field = it
                         onText(it.text)
                     },
-                    modifier = Modifier
-                        .weight(1f)
-                        .onPreviewKeyEvent { event ->
-                            if (enterSends && event.type == KeyEventType.KeyDown && event.key == Key.Enter && !event.isShiftPressed) {
-                                onSend()
-                                true
-                            } else {
-                                false
-                            }
-                        },
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .onPreviewKeyEvent { event ->
+                                if (enterSends && event.type == KeyEventType.KeyDown && event.key == Key.Enter && !event.isShiftPressed) {
+                                    onSend()
+                                    true
+                                } else {
+                                    false
+                                }
+                            },
                     placeholder = { Text("Message") },
                     maxLines = 6,
                     keyboardOptions = KeyboardOptions(imeAction = if (enterSends) ImeAction.Send else ImeAction.Default),
@@ -1597,8 +1669,11 @@ private fun Composer(
                 )
                 IconButton(onClick = onSchedule, enabled = scheduleEnabled) { Icon(Icons.Filled.Schedule, "Schedule") }
                 FilledIconButton(onClick = onSend, enabled = !sending && (text.isNotBlank() || attachment != null)) {
-                    if (sending) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                    else Icon(Icons.AutoMirrored.Filled.Send, "Send")
+                    if (sending) {
+                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(Icons.AutoMirrored.Filled.Send, "Send")
+                    }
                 }
             }
         }
@@ -1621,10 +1696,11 @@ private fun TapbackRow(
                 Surface(
                     shape = CircleShape,
                     color = if (on) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier
-                        .size(each)
-                        .semantics { contentDescription = description }
-                        .clickable { onPick(symbol, on) },
+                    modifier =
+                        Modifier
+                            .size(each)
+                            .semantics { contentDescription = description }
+                            .clickable { onPick(symbol, on) },
                 ) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(symbol.symbol, style = MaterialTheme.typography.titleLarge)
@@ -1635,7 +1711,12 @@ private fun TapbackRow(
     }
 }
 
-private data class ThreadTail(val count: Int, val lastSize: Int, val gap: Int, val scrolling: Boolean)
+private data class ThreadTail(
+    val count: Int,
+    val lastSize: Int,
+    val gap: Int,
+    val scrolling: Boolean,
+)
 
 private fun LazyListState.tailGap(): Int {
     val info = layoutInfo
@@ -1682,100 +1763,119 @@ private fun MessageBubble(
         }
         val media = message.attachments.any { it.mime.startsWith("image/") || it.mime.startsWith("video/") }
         Box {
-        Surface(
-            color = if (message.incoming) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primaryContainer,
-            shape = RoundedCornerShape(
-                topStart = 18.dp,
-                topEnd = 18.dp,
-                bottomStart = if (message.incoming) 4.dp else 18.dp,
-                bottomEnd = if (message.incoming) 18.dp else 4.dp,
-            ),
-            modifier = Modifier
-                .then(if (media) Modifier.fillMaxWidth(0.85f) else Modifier.widthIn(max = 320.dp))
-                .combinedClickable(onClick = onRetry, onLongClick = onLongPress),
-        ) {
-            Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                message.attachments.forEach { part ->
-                    when {
-                        part.mime.startsWith("image/") -> PartImage(
-                            part.id,
-                            loadPart,
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .combinedClickable(
-                                    onClick = { onImage(part.id) },
-                                    onLongClick = onLongPress,
-                                ),
-                        )
-                        part.mime.startsWith("video/") -> Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .height(180.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .combinedClickable(
-                                    onClick = { onOpenPart(part.id, part.mime) },
-                                    onLongClick = onLongPress,
-                                ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            VideoStill(part.id, part.mime, loadPart, Modifier.matchParentSize())
-                            Box(
-                                Modifier
-                                    .size(44.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Black.copy(alpha = 0.45f)),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(Icons.Filled.PlayArrow, "Play video", tint = Color.White)
+            Surface(
+                color = if (message.incoming) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primaryContainer,
+                shape =
+                    RoundedCornerShape(
+                        topStart = 18.dp,
+                        topEnd = 18.dp,
+                        bottomStart = if (message.incoming) 4.dp else 18.dp,
+                        bottomEnd = if (message.incoming) 18.dp else 4.dp,
+                    ),
+                modifier =
+                    Modifier
+                        .then(if (media) Modifier.fillMaxWidth(0.85f) else Modifier.widthIn(max = 320.dp))
+                        .combinedClickable(onClick = onRetry, onLongClick = onLongPress),
+            ) {
+                Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                    message.attachments.forEach { part ->
+                        when {
+                            part.mime.startsWith("image/") -> {
+                                PartImage(
+                                    part.id,
+                                    loadPart,
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .combinedClickable(
+                                            onClick = { onImage(part.id) },
+                                            onLongClick = onLongPress,
+                                        ),
+                                )
+                            }
+
+                            part.mime.startsWith("video/") -> {
+                                Box(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .height(180.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .combinedClickable(
+                                            onClick = { onOpenPart(part.id, part.mime) },
+                                            onLongClick = onLongPress,
+                                        ),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    VideoStill(part.id, part.mime, loadPart, Modifier.matchParentSize())
+                                    Box(
+                                        Modifier
+                                            .size(44.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.Black.copy(alpha = 0.45f)),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(Icons.Filled.PlayArrow, "Play video", tint = Color.White)
+                                    }
+                                }
+                            }
+
+                            else -> {
+                                TextButton(onClick = { onOpenPart(part.id, part.mime) }) {
+                                    Text(if (part.mime.startsWith("audio/")) "Audio" else "Attachment")
+                                }
                             }
                         }
-                        else -> TextButton(onClick = { onOpenPart(part.id, part.mime) }) {
-                            Text(if (part.mime.startsWith("audio/")) "Audio" else "Attachment")
-                        }
                     }
-                }
-                if (message.body.isNotBlank()) {
-                    val linkColor = if (message.incoming) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    }
-                    MessageText(message.body, linkColor, onOpenLink)
-                    CopyCodeButton(message.body, onCopyCode)
-                    val links = MessageLinks.find(message.body)
-                    if (links.size == 1) {
-                        TextButton(
-                            onClick = { onOpenLink(links.first().url) },
-                            contentPadding = PaddingValues(horizontal = 0.dp, vertical = 2.dp),
-                        ) { Text("Open link") }
-                    } else {
-                        links.take(4).forEach { link ->
+                    if (message.body.isNotBlank()) {
+                        val linkColor =
+                            if (message.incoming) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            }
+                        MessageText(message.body, linkColor, onOpenLink)
+                        CopyCodeButton(message.body, onCopyCode)
+                        val links = MessageLinks.find(message.body)
+                        if (links.size == 1) {
                             TextButton(
-                                onClick = { onOpenLink(link.url) },
+                                onClick = { onOpenLink(links.first().url) },
                                 contentPadding = PaddingValues(horizontal = 0.dp, vertical = 2.dp),
-                            ) { Text("Open ${MessageLinks.host(link.url)}") }
+                            ) { Text("Open link") }
+                        } else {
+                            links.take(4).forEach { link ->
+                                TextButton(
+                                    onClick = { onOpenLink(link.url) },
+                                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 2.dp),
+                                ) { Text("Open ${MessageLinks.host(link.url)}") }
+                            }
                         }
                     }
-                }
-                if (!message.incoming && message.status.isNotBlank()) {
-                    Text(
-                        if (message.status == Delivery.FAILED) "Not sent. Tap to retry" else message.status,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (message.status == Delivery.FAILED) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    if (!message.incoming && message.status.isNotBlank()) {
+                        Text(
+                            if (message.status == Delivery.FAILED) "Not sent. Tap to retry" else message.status,
+                            style = MaterialTheme.typography.labelSmall,
+                            color =
+                                if (message.status ==
+                                    Delivery.FAILED
+                                ) {
+                                    MaterialTheme.colorScheme.error
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                        )
+                    }
                 }
             }
-        }
             if (reactions.isNotEmpty()) {
                 Surface(
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.surface,
                     shadowElevation = 2.dp,
-                    modifier = Modifier
-                        .align(if (message.incoming) Alignment.BottomEnd else Alignment.BottomStart)
-                        .offset(y = 10.dp)
-                        .semantics { contentDescription = reactionDescription(reactions) },
+                    modifier =
+                        Modifier
+                            .align(if (message.incoming) Alignment.BottomEnd else Alignment.BottomStart)
+                            .offset(y = 10.dp)
+                            .semantics { contentDescription = reactionDescription(reactions) },
                 ) {
                     Text(
                         reactions.joinToString("  ") { mark ->
@@ -1812,40 +1912,49 @@ private fun MessageBubble(
 }
 
 @Composable
-private fun MessageText(text: String, linkColor: Color, onOpen: (String) -> Unit) {
+private fun MessageText(
+    text: String,
+    linkColor: Color,
+    onOpen: (String) -> Unit,
+) {
     val links = MessageLinks.find(text)
     if (links.isEmpty()) {
         Text(text)
         return
     }
-    val annotated = buildAnnotatedString {
-        var cursor = 0
-        for (link in links) {
-            append(text.substring(cursor, link.start))
-            withLink(
-                LinkAnnotation.Clickable(
-                    tag = link.url,
-                    styles = TextLinkStyles(
-                        SpanStyle(
-                            color = linkColor,
-                            textDecoration = TextDecoration.Underline,
-                            fontWeight = FontWeight.Medium,
-                        ),
+    val annotated =
+        buildAnnotatedString {
+            var cursor = 0
+            for (link in links) {
+                append(text.substring(cursor, link.start))
+                withLink(
+                    LinkAnnotation.Clickable(
+                        tag = link.url,
+                        styles =
+                            TextLinkStyles(
+                                SpanStyle(
+                                    color = linkColor,
+                                    textDecoration = TextDecoration.Underline,
+                                    fontWeight = FontWeight.Medium,
+                                ),
+                            ),
+                        linkInteractionListener = { onOpen(link.url) },
                     ),
-                    linkInteractionListener = { onOpen(link.url) },
-                ),
-            ) {
-                append(text.substring(link.start, link.end))
+                ) {
+                    append(text.substring(link.start, link.end))
+                }
+                cursor = link.end
             }
-            cursor = link.end
+            if (cursor < text.length) append(text.substring(cursor))
         }
-        if (cursor < text.length) append(text.substring(cursor))
-    }
     Text(annotated)
 }
 
 @Composable
-private fun CopyCodeButton(body: String, onCopy: (String) -> Unit) {
+private fun CopyCodeButton(
+    body: String,
+    onCopy: (String) -> Unit,
+) {
     val code = VerificationCodes.find(body) ?: return
     TextButton(
         onClick = { onCopy(code) },
@@ -1853,14 +1962,21 @@ private fun CopyCodeButton(body: String, onCopy: (String) -> Unit) {
     ) { Text("Copy code") }
 }
 
-private fun copyVerificationCode(context: android.content.Context, code: String): Boolean {
+private fun copyVerificationCode(
+    context: android.content.Context,
+    code: String,
+): Boolean {
     val clipboard = context.getSystemService(ClipboardManager::class.java) ?: return false
     // A sensitive clip is hidden from the paste chip and from the app the code is pasted into.
     val clip = ClipData.newPlainText("Verification code", code)
     return runCatching { clipboard.setPrimaryClip(clip) }.isSuccess
 }
 
-private fun openMessageLink(context: android.content.Context, raw: String, onError: (String) -> Unit) {
+private fun openMessageLink(
+    context: android.content.Context,
+    raw: String,
+    onError: (String) -> Unit,
+) {
     val href = MessageLinks.href(raw)
     if (!href.startsWith("https://") && !href.startsWith("http://")) {
         onError("That link cannot be opened")
@@ -1878,23 +1994,35 @@ private fun PartImage(
     zoom: Boolean = false,
 ) {
     val loaded by produceState<LoadedPart?>(null, partId) {
-        value = withContext(Dispatchers.IO) {
-            val bytes = loadPart(partId) ?: return@withContext null
-            val ratio = imageRatio(bytes)
-            if (KlipyGifs.isGif(bytes)) LoadedPart(bytes, null, ratio) else LoadedPart(bytes, decodeStill(bytes), ratio)
-        }
+        value =
+            withContext(Dispatchers.IO) {
+                val bytes = loadPart(partId) ?: return@withContext null
+                val ratio = imageRatio(bytes)
+                if (KlipyGifs.isGif(bytes)) LoadedPart(bytes, null, ratio) else LoadedPart(bytes, decodeStill(bytes), ratio)
+            }
     }
     val part = loaded
     // A loose height lets a small GIF stay at its pixel size. Lock the bubble to the picture's shape.
     val frame = if (zoom) modifier else modifier.aspectRatio((part?.ratio ?: 1.5f).coerceIn(0.75f, 1.9f))
     when {
-        part == null -> Box(frame, contentAlignment = Alignment.Center) {
-            Icon(Icons.Filled.Info, contentDescription = null)
+        part == null -> {
+            Box(frame, contentAlignment = Alignment.Center) {
+                Icon(Icons.Filled.Info, contentDescription = null)
+            }
         }
-        KlipyGifs.isGif(part.bytes) -> AnimatedGif(part.bytes, frame, "GIF")
-        part.still != null -> Image(part.still, "Picture", frame, contentScale = ContentScale.Fit)
-        else -> Box(frame, contentAlignment = Alignment.Center) {
-            Icon(Icons.Filled.Info, contentDescription = null)
+
+        KlipyGifs.isGif(part.bytes) -> {
+            AnimatedGif(part.bytes, frame, "GIF")
+        }
+
+        part.still != null -> {
+            Image(part.still, "Picture", frame, contentScale = ContentScale.Fit)
+        }
+
+        else -> {
+            Box(frame, contentAlignment = Alignment.Center) {
+                Icon(Icons.Filled.Info, contentDescription = null)
+            }
         }
     }
 }
@@ -1925,22 +2053,28 @@ private fun decodeStill(bytes: ByteArray): androidx.compose.ui.graphics.ImageBit
 }
 
 @Composable
-private fun VideoStill(partId: Long, mime: String, loadPart: suspend (Long) -> ByteArray?, modifier: Modifier) {
+private fun VideoStill(
+    partId: Long,
+    mime: String,
+    loadPart: suspend (Long) -> ByteArray?,
+    modifier: Modifier,
+) {
     val cache = LocalContext.current.cacheDir
     val bitmap by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, partId) {
-        value = withContext(Dispatchers.IO) {
-            val bytes = loadPart(partId) ?: return@withContext null
-            val ext = if (mime.contains("3gpp")) "3gp" else "mp4"
-            val file = File.createTempFile("vframe-$partId", ".$ext", cache)
-            try {
-                file.writeBytes(bytes)
-                previewFrame(file.absolutePath, true)
-            } catch (_: Throwable) {
-                null
-            } finally {
-                file.delete()
+        value =
+            withContext(Dispatchers.IO) {
+                val bytes = loadPart(partId) ?: return@withContext null
+                val ext = if (mime.contains("3gpp")) "3gp" else "mp4"
+                val file = File.createTempFile("vframe-$partId", ".$ext", cache)
+                try {
+                    file.writeBytes(bytes)
+                    previewFrame(file.absolutePath, true)
+                } catch (_: Throwable) {
+                    null
+                } finally {
+                    file.delete()
+                }
             }
-        }
     }
     val image = bitmap
     if (image != null) {
@@ -1953,7 +2087,11 @@ private fun VideoStill(partId: Long, mime: String, loadPart: suspend (Long) -> B
 }
 
 @Composable
-private fun FileImage(path: String, modifier: Modifier, description: String) {
+private fun FileImage(
+    path: String,
+    modifier: Modifier,
+    description: String,
+) {
     val video = mimeForPath(path).startsWith("video/")
     if (mimeForPath(path) == "image/gif") {
         val bytes by produceState<ByteArray?>(null, path) {
@@ -1973,7 +2111,12 @@ private fun FileImage(path: String, modifier: Modifier, description: String) {
 }
 
 @Composable
-private fun StillFile(path: String, video: Boolean, modifier: Modifier, description: String) {
+private fun StillFile(
+    path: String,
+    video: Boolean,
+    modifier: Modifier,
+    description: String,
+) {
     val bitmap by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, path) {
         value = withContext(Dispatchers.IO) { previewFrame(path, video) }
     }
@@ -1990,10 +2133,11 @@ private fun StillFile(path: String, video: Boolean, modifier: Modifier, descript
     }
 }
 
-private fun locationPermissions(): Array<String> = arrayOf(
-    Manifest.permission.ACCESS_COARSE_LOCATION,
-    Manifest.permission.ACCESS_FINE_LOCATION,
-)
+private fun locationPermissions(): Array<String> =
+    arrayOf(
+        Manifest.permission.ACCESS_COARSE_LOCATION,
+        Manifest.permission.ACCESS_FINE_LOCATION,
+    )
 
 private enum class ComposerPanel { None, Emoji, Gifs }
 
@@ -2020,28 +2164,34 @@ private fun Modifier.dragComposerPanel(
     minDp: Float,
     maxDp: Float,
     height: MutableState<Dp>,
-): Modifier = pointerInput(density, minDp, maxDp) {
-    detectVerticalDragGestures { _, dragAmount ->
-        height.value = composerPanelHeightDp(
-            height.value.value,
-            dragAmount,
-            density,
-            minDp,
-            maxDp,
-        ).dp
+): Modifier =
+    pointerInput(density, minDp, maxDp) {
+        detectVerticalDragGestures { _, dragAmount ->
+            height.value =
+                composerPanelHeightDp(
+                    height.value.value,
+                    dragAmount,
+                    density,
+                    minDp,
+                    maxDp,
+                ).dp
+        }
     }
-}
 
-private fun previewFrame(path: String, video: Boolean): androidx.compose.ui.graphics.ImageBitmap? {
+private fun previewFrame(
+    path: String,
+    video: Boolean,
+): androidx.compose.ui.graphics.ImageBitmap? {
     if (!video) return BitmapFactory.decodeFile(path)?.asImageBitmap()
     val retriever = MediaMetadataRetriever()
     return try {
         retriever.setDataSource(path)
-        val frame = if (Build.VERSION.SDK_INT >= 27) {
-            retriever.getScaledFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC, 256, 256)
-        } else {
-            retriever.getFrameAtTime(0)
-        }
+        val frame =
+            if (Build.VERSION.SDK_INT >= 27) {
+                retriever.getScaledFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC, 256, 256)
+            } else {
+                retriever.getFrameAtTime(0)
+            }
         frame?.asImageBitmap()
     } catch (_: Throwable) {
         null
@@ -2060,24 +2210,29 @@ private fun rememberContactShare(
     val scope = rememberCoroutineScope()
     val onCardState = rememberUpdatedState(onCard)
     var waiting by remember { mutableStateOf(false) }
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickContact()) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        scope.launch {
-            val card = withContext(Dispatchers.IO) { runCatching { load(uri) }.getOrNull() }
-            if (card.isNullOrBlank()) onError("Could not read that contact") else onCardState.value(card)
+    val picker =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickContact()) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            scope.launch {
+                val card = withContext(Dispatchers.IO) { runCatching { load(uri) }.getOrNull() }
+                if (card.isNullOrBlank()) onError("Could not read that contact") else onCardState.value(card)
+            }
         }
-    }
-    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (!waiting) return@rememberLauncherForActivityResult
-        waiting = false
-        if (granted) picker.launch(null) else onError("Contacts permission is needed to send a contact")
-    }
+    val permission =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (!waiting) return@rememberLauncherForActivityResult
+            waiting = false
+            if (granted) picker.launch(null) else onError("Contacts permission is needed to send a contact")
+        }
     return {
-        val granted = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.READ_CONTACTS,
-        ) == PackageManager.PERMISSION_GRANTED
-        if (granted) picker.launch(null) else {
+        val granted =
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.READ_CONTACTS,
+            ) == PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            picker.launch(null)
+        } else {
             waiting = true
             permission.launch(Manifest.permission.READ_CONTACTS)
         }
@@ -2086,7 +2241,10 @@ private fun rememberContactShare(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ScheduleDialog(onDismiss: () -> Unit, onConfirm: (Long) -> Unit) {
+private fun ScheduleDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (Long) -> Unit,
+) {
     var dateMillis by remember { mutableStateOf<Long?>(null) }
     val seed = remember { schedulePickerSeed() }
     val dateState = rememberDatePickerState(initialSelectedDateMillis = seed.dateUtcMillis)
@@ -2109,7 +2267,12 @@ private fun ScheduleDialog(onDismiss: () -> Unit, onConfirm: (Long) -> Unit) {
                     val day = dateMillis ?: return@TextButton
                     val zone = ZoneId.systemDefault()
                     val local = Instant.ofEpochMilli(day).atZone(ZoneId.of("UTC")).toLocalDate()
-                    val at = local.atTime(timeState.hour, timeState.minute).atZone(zone).toInstant().toEpochMilli()
+                    val at =
+                        local
+                            .atTime(timeState.hour, timeState.minute)
+                            .atZone(zone)
+                            .toInstant()
+                            .toEpochMilli()
                     onConfirm(at)
                 }) { Text("Schedule") }
             },
@@ -2118,21 +2281,27 @@ private fun ScheduleDialog(onDismiss: () -> Unit, onConfirm: (Long) -> Unit) {
     }
 }
 
-private fun requestDeviceLocation(context: android.content.Context, onResult: (String?) -> Unit) {
+private fun requestDeviceLocation(
+    context: android.content.Context,
+    onResult: (String?) -> Unit,
+) {
     val manager = context.getSystemService(LocationManager::class.java)
     if (manager == null) {
         onResult(null)
         return
     }
-    val providers = buildList {
-        if (Build.VERSION.SDK_INT >= 31) add(LocationManager.FUSED_PROVIDER)
-        add(LocationManager.NETWORK_PROVIDER)
-        add(LocationManager.GPS_PROVIDER)
-    }
+    val providers =
+        buildList {
+            if (Build.VERSION.SDK_INT >= 31) add(LocationManager.FUSED_PROVIDER)
+            add(LocationManager.NETWORK_PROVIDER)
+            add(LocationManager.GPS_PROVIDER)
+        }
+
     fun link(location: android.location.Location?): String? {
         location ?: return null
         return "https://maps.google.com/?q=${location.latitude},${location.longitude}"
     }
+
     fun lastKnown(): String? {
         for (provider in providers) {
             val found = runCatching { manager.getLastKnownLocation(provider) }.getOrNull()
@@ -2144,6 +2313,7 @@ private fun requestDeviceLocation(context: android.content.Context, onResult: (S
         onResult(lastKnown())
         return
     }
+
     fun tryProvider(index: Int) {
         if (index >= providers.size) {
             onResult(lastKnown())
@@ -2167,5 +2337,4 @@ private fun requestDeviceLocation(context: android.content.Context, onResult: (S
     tryProvider(0)
 }
 
-private fun splitRecipients(raw: String): List<String> =
-    raw.split(',', ';', '\n').map { it.trim() }.filter { it.isNotEmpty() }
+private fun splitRecipients(raw: String): List<String> = raw.split(',', ';', '\n').map { it.trim() }.filter { it.isNotEmpty() }

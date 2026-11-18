@@ -15,7 +15,10 @@ object ScheduleController {
         return Build.VERSION.SDK_INT < 31 || alarm.canScheduleExactAlarms()
     }
 
-    fun arm(context: Context, item: ScheduledMessage) {
+    fun arm(
+        context: Context,
+        item: ScheduledMessage,
+    ) {
         val alarm = context.getSystemService(AlarmManager::class.java) ?: return
         val pending = pending(context, item.id)
         if (canExact(context)) {
@@ -25,7 +28,10 @@ object ScheduleController {
         }
     }
 
-    fun cancel(context: Context, id: String) {
+    fun cancel(
+        context: Context,
+        id: String,
+    ) {
         val alarm = context.getSystemService(AlarmManager::class.java) ?: return
         alarm.cancel(pending(context, id))
     }
@@ -39,12 +45,16 @@ object ScheduleController {
         }
     }
 
-    private fun pending(context: Context, id: String): PendingIntent {
-        val intent = Intent(context, ScheduleAlarmReceiver::class.java).apply {
-            action = "app.messages.SEND_SCHEDULED"
-            data = Uri.parse("messages://scheduled/$id")
-            putExtra("id", id)
-        }
+    private fun pending(
+        context: Context,
+        id: String,
+    ): PendingIntent {
+        val intent =
+            Intent(context, ScheduleAlarmReceiver::class.java).apply {
+                action = "app.messages.SEND_SCHEDULED"
+                data = Uri.parse("messages://scheduled/$id")
+                putExtra("id", id)
+            }
         return PendingIntent.getBroadcast(
             context,
             id.hashCode(),

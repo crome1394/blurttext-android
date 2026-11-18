@@ -22,14 +22,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import app.messages.data.footerHeightDp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.messages.data.footerHeightDp
 
 @Composable
-fun MessagesRoot(vm: MessagesViewModel, onRequestRole: () -> Unit) {
+fun MessagesRoot(
+    vm: MessagesViewModel,
+    onRequestRole: () -> Unit,
+) {
     val screen by vm.screen.collectAsStateWithLifecycle()
     val screenUnder by vm.screenUnder.collectAsStateWithLifecycle()
     val compose by vm.composeOverlay.collectAsStateWithLifecycle()
@@ -41,9 +44,10 @@ fun MessagesRoot(vm: MessagesViewModel, onRequestRole: () -> Unit) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val lifecycle = LocalLifecycleOwner.current
     DisposableEffect(lifecycle) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) vm.onResume()
-        }
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) vm.onResume()
+            }
         lifecycle.lifecycle.addObserver(observer)
         onDispose { lifecycle.lifecycle.removeObserver(observer) }
     }
@@ -80,7 +84,17 @@ fun MessagesRoot(vm: MessagesViewModel, onRequestRole: () -> Unit) {
             }
             SnackbarHost(
                 hostState = vm.snackbar,
-                modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = (footerHeightDp(settings.footerHeight) + 40).dp).imePadding(),
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding()
+                        .padding(
+                            bottom =
+                                (
+                                    footerHeightDp(settings.footerHeight) +
+                                        40
+                                ).dp,
+                        ).imePadding(),
             )
         }
     }

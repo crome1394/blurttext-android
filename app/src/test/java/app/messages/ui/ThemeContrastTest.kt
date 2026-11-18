@@ -10,7 +10,12 @@ class ThemeContrastTest {
     private fun schemes(): List<Pair<String, ColorScheme>> =
         ThemeChoices.flatMap { listOf("${it.id} light" to it.light, "${it.id} dark" to it.dark) }
 
-    private fun assertReadable(name: String, pair: String, fg: Color, bg: Color) {
+    private fun assertReadable(
+        name: String,
+        pair: String,
+        fg: Color,
+        bg: Color,
+    ) {
         val ratio = contrastRatio(fg, bg)
         assertTrue("$name $pair is %.2f:1".format(ratio), ratio >= 4.5f)
     }

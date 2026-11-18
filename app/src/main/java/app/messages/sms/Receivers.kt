@@ -21,7 +21,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class SmsDeliverReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent?) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent?,
+    ) {
         if (intent == null) return
         val action = intent.action
         val deliver = action == Telephony.Sms.Intents.SMS_DELIVER_ACTION
@@ -32,10 +35,11 @@ class SmsDeliverReceiver : BroadcastReceiver() {
         val address = parts.first().displayOriginatingAddress ?: parts.first().originatingAddress ?: return
         val body = parts.joinToString("") { it.displayMessageBody ?: it.messageBody ?: "" }
         val timestamp = parts.first().timestampMillis.takeIf { it > 0 } ?: System.currentTimeMillis()
-        val subId = intent.getIntExtra(
-            "subscription",
-            intent.getIntExtra(SubscriptionManager.EXTRA_SUBSCRIPTION_INDEX, -1),
-        )
+        val subId =
+            intent.getIntExtra(
+                "subscription",
+                intent.getIntExtra(SubscriptionManager.EXTRA_SUBSCRIPTION_INDEX, -1),
+            )
         val app = context.applicationContext as? MessagesApp
         if (deliver && app != null) {
             try {
@@ -61,8 +65,11 @@ class SmsDeliverReceiver : BroadcastReceiver() {
             }
         }
         val lan = context.applicationContext as? LanTextApp
-        if (IncomingDedup.claim(address, body)) lan?.sms?.emitIncoming(address, body)
-        else if (deliver) lan?.sms?.emitRefresh()
+        if (IncomingDedup.claim(address, body)) {
+            lan?.sms?.emitIncoming(address, body)
+        } else if (deliver) {
+            lan?.sms?.emitRefresh()
+        }
     }
 
     companion object {
@@ -71,7 +78,10 @@ class SmsDeliverReceiver : BroadcastReceiver() {
 }
 
 class MessageStatusReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent?) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent?,
+    ) {
         val uri = intent?.getStringExtra(EXTRA_URI)?.let(Uri::parse) ?: return
         val key = uri.toString()
         when (intent.action) {
@@ -82,13 +92,15 @@ class MessageStatusReceiver : BroadcastReceiver() {
                     finishSmsStatus(context, uri, PartTracker.failed(key))
                 }
             }
+
             ACTION_DELIVERED -> {
-                val values = android.content.ContentValues().apply {
-                    put(
-                        Telephony.Sms.STATUS,
-                        if (resultCode == Activity.RESULT_OK) Telephony.Sms.STATUS_COMPLETE else Telephony.Sms.STATUS_FAILED,
-                    )
-                }
+                val values =
+                    android.content.ContentValues().apply {
+                        put(
+                            Telephony.Sms.STATUS,
+                            if (resultCode == Activity.RESULT_OK) Telephony.Sms.STATUS_COMPLETE else Telephony.Sms.STATUS_FAILED,
+                        )
+                    }
                 context.contentResolver.update(uri, values, null, null)
                 (context.applicationContext as? MessagesApp)?.messaging?.ping()
             }
@@ -105,7 +117,10 @@ class MessageStatusReceiver : BroadcastReceiver() {
 }
 
 class MmsWapPushReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent?) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent?,
+    ) {
         if (intent?.action != Telephony.Sms.Intents.WAP_PUSH_DELIVER_ACTION) return
         val data = intent.getByteArrayExtra("data")
         val header = intent.getByteArrayExtra("header")
@@ -115,10 +130,15 @@ class MmsWapPushReceiver : BroadcastReceiver() {
         val pending = goAsync()
         Thread {
             try {
-                val notification = MmsNotificationParser.parse(data)
-                    ?: MmsNotificationParser.parse(raw)
-                    ?: if (data != null && header != null) MmsNotificationParser.parse(header + data) else null
-                    ?: MmsNotificationParser.parse(header)
+                val notification =
+                    MmsNotificationParser.parse(data)
+                        ?: MmsNotificationParser.parse(raw)
+                        ?: if (data != null && header != null) {
+                            MmsNotificationParser.parse(header + data)
+                        } else {
+                            null
+                                ?: MmsNotificationParser.parse(header)
+                        }
                 if (notification == null) {
                     Log.w("Messages", "Could not read an MMS notification bytes=${data?.size ?: raw?.size ?: 0}")
                     return@Thread
@@ -146,7 +166,10 @@ class MmsWapPushReceiver : BroadcastReceiver() {
 }
 
 class MmsDownloadReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent?) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent?,
+    ) {
         if (intent == null) return
         val fileName = intent.getStringExtra("file").orEmpty()
         if (!fileName.matches(DOWNLOAD_FILE)) return
@@ -170,10 +193,13 @@ class MmsDownloadReceiver : BroadcastReceiver() {
                     val bytes = if (file.isFile) file.readBytes() else ByteArray(0)
                     val threadId = app.messaging.storeRetrievedMms(placeholder, bytes, address)
                     if (threadId >= 0) {
-                        val text = MmsRetrieveParser.parse(bytes)?.parts
-                            ?.firstOrNull { it.mime.startsWith("text/") }
-                            ?.text()
-                            .orEmpty()
+                        val text =
+                            MmsRetrieveParser
+                                .parse(bytes)
+                                ?.parts
+                                ?.firstOrNull { it.mime.startsWith("text/") }
+                                ?.text()
+                                .orEmpty()
                         val blocked = app.messaging.isBlocked(address)
                         val keyword = matchesBlockedKeyword(text, app.local.snapshot.blockedKeywords)
                         if (blocked) {
@@ -214,7 +240,10 @@ class MmsDownloadReceiver : BroadcastReceiver() {
 }
 
 class MessageActionReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent?) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent?,
+    ) {
         val threadId = intent?.getLongExtra(MessageNotifier.EXTRA_THREAD, -1L) ?: return
         if (threadId < 0) return
         val app = context.applicationContext as? MessagesApp ?: return
@@ -223,20 +252,24 @@ class MessageActionReceiver : BroadcastReceiver() {
                 app.messaging.markRead(threadId)
                 MessageNotifier.cancel(context, threadId)
             }
+
             ACTION_REPLY -> {
-                val text = RemoteInput.getResultsFromIntent(intent)
-                    ?.getCharSequence(MessageNotifier.KEY_REPLY)
-                    ?.toString()
-                    .orEmpty()
-                    .trim()
+                val text =
+                    RemoteInput
+                        .getResultsFromIntent(intent)
+                        ?.getCharSequence(MessageNotifier.KEY_REPLY)
+                        ?.toString()
+                        .orEmpty()
+                        .trim()
                 if (text.isEmpty()) return
                 val fallback = intent.getStringExtra(MessageNotifier.EXTRA_ADDRESS).orEmpty()
                 val pending = goAsync()
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        val addresses = app.messaging.addressesFor(threadId).ifEmpty {
-                            listOf(fallback).filter { it.isNotBlank() }
-                        }
+                        val addresses =
+                            app.messaging.addressesFor(threadId).ifEmpty {
+                                listOf(fallback).filter { it.isNotBlank() }
+                            }
                         app.messaging.send(addresses, text, null, null)
                         app.messaging.markRead(threadId)
                     } catch (t: Throwable) {
@@ -259,11 +292,22 @@ class MessageActionReceiver : BroadcastReceiver() {
 class HeadlessSmsSendService : Service() {
     override fun onBind(intent: Intent?) = null
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val address = intent?.data?.schemeSpecificPart?.substringBefore('?')?.trim().orEmpty()
-        val body = intent?.getStringExtra(Intent.EXTRA_TEXT)
-            ?: intent?.getStringExtra("sms_body")
-            ?: ""
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int,
+    ): Int {
+        val address =
+            intent
+                ?.data
+                ?.schemeSpecificPart
+                ?.substringBefore('?')
+                ?.trim()
+                .orEmpty()
+        val body =
+            intent?.getStringExtra(Intent.EXTRA_TEXT)
+                ?: intent?.getStringExtra("sms_body")
+                ?: ""
         if (address.isBlank() || body.isBlank()) {
             stopSelf(startId)
             return START_NOT_STICKY
@@ -285,13 +329,20 @@ class HeadlessSmsSendService : Service() {
 }
 
 class ScheduleAlarmReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent?) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent?,
+    ) {
         val id = intent?.getStringExtra("id") ?: return
         val app = context.applicationContext as? MessagesApp ?: return
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val item = app.local.current().scheduled.find { it.id == id } ?: return@launch
+                val item =
+                    app.local
+                        .current()
+                        .scheduled
+                        .find { it.id == id } ?: return@launch
                 app.messaging.send(item.addresses, item.body, null, item.subscriptionId)
                 app.local.update { state -> state.copy(scheduled = state.scheduled.filter { it.id != id }) }
                 val shown = if (app.local.snapshot.notificationPreview) item.body.ifBlank { "Sent" } else "Sent"
@@ -310,7 +361,10 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
 }
 
 class ScheduleBootReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent?) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent?,
+    ) {
         val action = intent?.action ?: return
         if (action != Intent.ACTION_BOOT_COMPLETED && action != Intent.ACTION_LOCKED_BOOT_COMPLETED) return
         val app = context.applicationContext as? MessagesApp ?: return
@@ -325,7 +379,10 @@ class ScheduleBootReceiver : BroadcastReceiver() {
     }
 }
 
-internal fun smsManager(context: Context, subId: Int): SmsManager {
+internal fun smsManager(
+    context: Context,
+    subId: Int,
+): SmsManager {
     val base = context.getSystemService(SmsManager::class.java) ?: SmsManager.getDefault()
     if (subId == SubscriptionManager.INVALID_SUBSCRIPTION_ID || subId < 0) return base
     return if (Build.VERSION.SDK_INT >= 31) {
@@ -335,4 +392,3 @@ internal fun smsManager(context: Context, subId: Int): SmsManager {
         SmsManager.getSmsManagerForSubscriptionId(subId)
     }
 }
-

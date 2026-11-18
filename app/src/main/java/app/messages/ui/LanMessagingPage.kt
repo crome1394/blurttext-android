@@ -21,13 +21,14 @@ import app.lantext.ui.LanTextAppUi
 @Composable
 fun LanMessagingPage(active: Boolean) {
     val viewModel: AppViewModel = viewModel()
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions(),
-    ) {
-        viewModel.refreshPermissions()
-        LanTextApp.instance.wifi.reregister()
-        LanTextApp.instance.gateway.onNetworkChanged()
-    }
+    val permissionLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions(),
+        ) {
+            viewModel.refreshPermissions()
+            LanTextApp.instance.wifi.reregister()
+            LanTextApp.instance.gateway.onNetworkChanged()
+        }
     LaunchedEffect(active) {
         if (!active) return@LaunchedEffect
         viewModel.refreshPermissions()
@@ -37,13 +38,14 @@ fun LanMessagingPage(active: Boolean) {
     // Coming back from Android's Location or app settings, re-read what may have changed there.
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     DisposableEffect(lifecycle, active) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (active && event == Lifecycle.Event.ON_RESUME) {
-                viewModel.refreshPermissions()
-                LanTextApp.instance.wifi.reregister()
-                LanTextApp.instance.gateway.onNetworkChanged()
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (active && event == Lifecycle.Event.ON_RESUME) {
+                    viewModel.refreshPermissions()
+                    LanTextApp.instance.wifi.reregister()
+                    LanTextApp.instance.gateway.onNetworkChanged()
+                }
             }
-        }
         lifecycle.addObserver(observer)
         onDispose { lifecycle.removeObserver(observer) }
     }
@@ -81,13 +83,14 @@ fun LanMessagingPage(active: Boolean) {
 }
 
 private fun neededPermissions(): List<String> {
-    val needed = mutableListOf(
-        Manifest.permission.READ_SMS,
-        Manifest.permission.SEND_SMS,
-        Manifest.permission.RECEIVE_SMS,
-        Manifest.permission.READ_CONTACTS,
-        Manifest.permission.WRITE_CONTACTS,
-    )
+    val needed =
+        mutableListOf(
+            Manifest.permission.READ_SMS,
+            Manifest.permission.SEND_SMS,
+            Manifest.permission.RECEIVE_SMS,
+            Manifest.permission.READ_CONTACTS,
+            Manifest.permission.WRITE_CONTACTS,
+        )
     if (Build.VERSION.SDK_INT >= 33) {
         needed += Manifest.permission.POST_NOTIFICATIONS
         needed += Manifest.permission.NEARBY_WIFI_DEVICES

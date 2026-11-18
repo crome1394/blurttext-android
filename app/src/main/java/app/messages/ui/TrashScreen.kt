@@ -68,13 +68,14 @@ fun TrashScreen(vm: MessagesViewModel) {
         contentColor = ink,
         topBar = {
             TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = canvas,
-                    scrolledContainerColor = canvas,
-                    navigationIconContentColor = ink,
-                    titleContentColor = ink,
-                    actionIconContentColor = ink,
-                ),
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = canvas,
+                        scrolledContainerColor = canvas,
+                        navigationIconContentColor = ink,
+                        titleContentColor = ink,
+                        actionIconContentColor = ink,
+                    ),
                 title = { Text("Trash") },
                 navigationIcon = {
                     IconButton(onClick = vm::pop) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
@@ -140,8 +141,11 @@ fun TrashScreen(vm: MessagesViewModel) {
                         conversation = conversation,
                         selected = conversation.threadId in selected,
                         onClick = {
-                            if (selected.isEmpty()) vm.openTrashedThread(conversation.threadId)
-                            else selected = toggle(selected, conversation.threadId)
+                            if (selected.isEmpty()) {
+                                vm.openTrashedThread(conversation.threadId)
+                            } else {
+                                selected = toggle(selected, conversation.threadId)
+                            }
                         },
                         onLongPress = { selected = selected + conversation.threadId },
                     )
@@ -177,7 +181,10 @@ fun TrashScreen(vm: MessagesViewModel) {
 }
 
 @Composable
-private fun TrashRibbon(onDelete: () -> Unit, onRestore: () -> Unit) {
+private fun TrashRibbon(
+    onDelete: () -> Unit,
+    onRestore: () -> Unit,
+) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -247,5 +254,7 @@ private fun TrashRow(
     }
 }
 
-private fun toggle(selected: Set<Long>, id: Long): Set<Long> =
-    if (id in selected) selected - id else selected + id
+private fun toggle(
+    selected: Set<Long>,
+    id: Long,
+): Set<Long> = if (id in selected) selected - id else selected + id

@@ -11,30 +11,37 @@ data class Outbound(
 )
 
 object SendIntents {
-    private val blockedShareAuthorities = setOf(
-        "sms",
-        "mms",
-        "mms-sms",
-        "com.android.contacts",
-        "contacts",
-    )
+    private val blockedShareAuthorities =
+        setOf(
+            "sms",
+            "mms",
+            "mms-sms",
+            "com.android.contacts",
+            "contacts",
+        )
+
     fun parse(intent: Intent): Outbound? {
         val action = intent.action ?: return null
         if (action != Intent.ACTION_SEND && action != Intent.ACTION_SENDTO && action != Intent.ACTION_VIEW) {
             return null
         }
         val addresses = addresses(intent.data)
-        val body = intent.getStringExtra(Intent.EXTRA_TEXT)
-            ?: intent.getStringExtra("sms_body")
-            ?: intent.data?.getQueryParameter("body")
-            ?: ""
+        val body =
+            intent.getStringExtra(Intent.EXTRA_TEXT)
+                ?: intent.getStringExtra("sms_body")
+                ?: intent.data?.getQueryParameter("body")
+                ?: ""
         val attachment = intent.parcelUri(Intent.EXTRA_STREAM)
         if (addresses.isEmpty() && body.isBlank() && attachment == null) return null
         return Outbound(addresses, body, attachment)
     }
 
     /** A share may attach another app's content URI. It may not attach this app's files, or the message and contact stores. */
-    fun shareAttachmentAllowed(scheme: String?, authority: String?, packageName: String): Boolean {
+    fun shareAttachmentAllowed(
+        scheme: String?,
+        authority: String?,
+        packageName: String,
+    ): Boolean {
         if (!scheme.equals("content", ignoreCase = true)) return false
         // content://0@mms/part/1 is the mms provider. Android drops the user prefix before the lookup.
         val owner = authority.orEmpty().substringAfterLast('@')
@@ -51,12 +58,11 @@ object SendIntents {
         return raw.split(',', ';').map { it.trim() }.filter { it.isNotEmpty() }
     }
 
-    private fun Intent.parcelUri(name: String): Uri? {
-        return if (Build.VERSION.SDK_INT >= 33) {
+    private fun Intent.parcelUri(name: String): Uri? =
+        if (Build.VERSION.SDK_INT >= 33) {
             getParcelableExtra(name, Uri::class.java)
         } else {
             @Suppress("DEPRECATION")
             getParcelableExtra(name)
         }
-    }
 }

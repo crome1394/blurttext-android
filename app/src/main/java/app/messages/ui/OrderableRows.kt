@@ -71,13 +71,14 @@ fun OrderableRows(
             androidx.compose.runtime.key(item.id) {
                 val name = label(item)
                 val dragging = index == dragFrom
-                val visual = when {
-                    dragFrom < 0 || target == dragFrom -> 0f
-                    dragging -> dragDy
-                    dragFrom < target && index in (dragFrom + 1)..target -> -rowPx
-                    dragFrom > target && index in target until dragFrom -> rowPx
-                    else -> 0f
-                }
+                val visual =
+                    when {
+                        dragFrom < 0 || target == dragFrom -> 0f
+                        dragging -> dragDy
+                        dragFrom < target && index in (dragFrom + 1)..target -> -rowPx
+                        dragFrom > target && index in target until dragFrom -> rowPx
+                        else -> 0f
+                    }
                 val bg = if (dragging) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent
                 Row(
                     Modifier
@@ -118,11 +119,12 @@ fun OrderableRows(
                         name,
                         modifier = Modifier.weight(1f),
                         fontWeight = FontWeight.Medium,
-                        color = if (item.shown) {
-                            MaterialTheme.colorScheme.onSurface
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
+                        color =
+                            if (item.shown) {
+                                MaterialTheme.colorScheme.onSurface
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                     )
                     AppSwitch(
                         checked = item.shown,
@@ -136,7 +138,11 @@ fun OrderableRows(
 }
 
 /** How many rows the finger has crossed. Half a row is enough, in either direction. */
-internal fun reorderSlots(dragDy: Float, rowPx: Float, dragging: Boolean): Int {
+internal fun reorderSlots(
+    dragDy: Float,
+    rowPx: Float,
+    dragging: Boolean,
+): Int {
     if (!dragging || rowPx <= 0f) return 0
     val rows = dragDy / rowPx
     val whole = rows.toInt()
@@ -198,5 +204,8 @@ private fun ReorderHandle(
 }
 
 private fun reorderGrabHaptic(): Int =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) HapticFeedbackConstants.GESTURE_START
-    else HapticFeedbackConstants.CLOCK_TICK
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        HapticFeedbackConstants.GESTURE_START
+    } else {
+        HapticFeedbackConstants.CLOCK_TICK
+    }

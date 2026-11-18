@@ -13,7 +13,11 @@ data class GroupPlacement(
 )
 
 fun cleanMmsAddress(raw: String): String =
-    raw.substringBefore("/").trim().trim('<', '>').trim()
+    raw
+        .substringBefore("/")
+        .trim()
+        .trim('<', '>')
+        .trim()
 
 fun addressKey(raw: String): String {
     val cleaned = cleanMmsAddress(raw)
@@ -24,7 +28,10 @@ fun addressKey(raw: String): String {
     return if (digits.length >= 10) digits.takeLast(10) else digits
 }
 
-fun sameAddress(left: String, right: String): Boolean {
+fun sameAddress(
+    left: String,
+    right: String,
+): Boolean {
     val a = addressKey(left)
     val b = addressKey(right)
     return a.isNotEmpty() && a == b
@@ -37,8 +44,10 @@ fun placeGroup(
     ownNumbers: List<String>,
 ): GroupPlacement {
     val ownKeys = ownNumbers.map { addressKey(it) }.filter { it.isNotEmpty() }.toSet()
+
     fun owned(address: String): Boolean = addressKey(address) in ownKeys
     val people = ArrayList<String>()
+
     fun add(address: String) {
         val key = addressKey(address)
         if (key.isEmpty() || owned(address)) return
