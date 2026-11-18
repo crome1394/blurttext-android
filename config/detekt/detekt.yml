@@ -2,6 +2,9 @@
 # Only settings that differ from the defaults belong here.
 
 naming:
+  MatchingDeclarationName:
+    # Files are named for what they do (AGENTS.md), e.g. Theme.kt holds the palettes and theme helpers.
+    active: false
   FunctionNaming:
     # Composables are named like types.
     ignoreAnnotated: ['Composable']
@@ -18,8 +21,12 @@ complexity:
 
 style:
   MaxLineLength:
-    # Same limit as ktlint (.editorconfig).
-    maxLineLength: 140
+    # ktlint owns line length (.editorconfig, 140) and rightly skips raw-string regexes.
+    active: false
+  ReturnCount:
+    # Early-return guards (`?: return`, `if (...) return`) are idiomatic Kotlin and keep nesting flat.
+    max: 3
+    excludeGuardClauses: true
   MagicNumber:
     # Layout sizes (dp, sp) and palette colors live in composables and theme tables.
     ignoreAnnotated: ['Composable', 'Preview']
