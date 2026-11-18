@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- When Location is off or only approximate location is allowed, the computer inbox says so and offers a button for the setting, instead of showing no network and no QR code.
 - Fixed a crash on Android 12 and later when Wi-Fi dropped while the computer inbox was on, and a second crash when Android restarted the app in the background.
 - The computer address is https://blurttext.local and the port. Computers look up .local names on the Wi-Fi, so the name now opens without a DNS entry. The old blurttext.lan name never reached the phone.
 

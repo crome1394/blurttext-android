@@ -5,8 +5,12 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.lantext.LanTextApp
@@ -29,6 +33,19 @@ fun LanMessagingPage(active: Boolean) {
         viewModel.refreshPermissions()
         LanTextApp.instance.wifi.reregister()
         LanTextApp.instance.gateway.onNetworkChanged()
+    }
+    // Coming back from Android's Location or app settings, re-read what may have changed there.
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle, active) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (active && event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshPermissions()
+                LanTextApp.instance.wifi.reregister()
+                LanTextApp.instance.gateway.onNetworkChanged()
+            }
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
     }
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val snapshot by viewModel.snapshot.collectAsStateWithLifecycle()
