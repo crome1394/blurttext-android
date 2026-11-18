@@ -82,7 +82,7 @@ class DebugSeedReceiver : BroadcastReceiver() {
             path: String,
             outgoing: Boolean,
         ): Int {
-            if (mime != "image/gif" && mime != "video/mp4" && mime != "video/3gpp") error("mime")
+            if (mime !in setOf("image/gif", "image/jpeg", "image/png", "video/mp4", "video/3gpp")) error("mime")
             val file = File(path).canonicalFile
             val roots = listOf(context.cacheDir, context.filesDir).map { it.canonicalFile.path + File.separator }
             val allowed = roots.any { file.path.startsWith(it) }
@@ -105,7 +105,13 @@ class DebugSeedReceiver : BroadcastReceiver() {
             val table = if (outgoing) Telephony.Mms.Sent.CONTENT_URI else Telephony.Mms.Inbox.CONTENT_URI
             val uri = context.contentResolver.insert(table, values) ?: error("mms")
             val id = uri.lastPathSegment ?: error("mms")
-            val name = if (mime == "image/gif") "g.gif" else "v.mp4"
+            val name =
+                when (mime) {
+                    "image/gif" -> "g.gif"
+                    "image/jpeg" -> "p.jpg"
+                    "image/png" -> "p.png"
+                    else -> "v.mp4"
+                }
             val part =
                 ContentValues().apply {
                     put(Telephony.Mms.Part.CONTENT_TYPE, mime)
