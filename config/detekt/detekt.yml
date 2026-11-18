@@ -1,0 +1,29 @@
+# Overrides on top of detekt's default config (buildUponDefaultConfig = true).
+# Only settings that differ from the defaults belong here.
+
+naming:
+  FunctionNaming:
+    # Composables are named like types.
+    ignoreAnnotated: ['Composable']
+  TopLevelPropertyNaming:
+    # Compose colors and shapes are PascalCase constants (e.g. SwipeDeletePreview).
+    constantPattern: '[A-Z][_A-Za-z0-9]*'
+    propertyPattern: '[A-Za-z][_A-Za-z0-9]*'
+
+complexity:
+  LongParameterList:
+    # Composables take state plus one lambda per event, by design.
+    ignoreAnnotated: ['Composable']
+    ignoreDefaultParameters: true
+
+style:
+  MaxLineLength:
+    # Same limit as ktlint (.editorconfig).
+    maxLineLength: 140
+  MagicNumber:
+    # Layout sizes (dp, sp) and palette colors live in composables and theme tables.
+    ignoreAnnotated: ['Composable', 'Preview']
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+  UnusedPrivateMember:
+    ignoreAnnotated: ['Preview']

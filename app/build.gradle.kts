@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.ktlint)
 }
 
 android {
@@ -54,6 +56,29 @@ android {
             excludes += "/META-INF/DEPENDENCIES"
             excludes += "/META-INF/io.netty.versions.properties"
         }
+    }
+}
+
+ktlint {
+    version.set(libs.versions.ktlint)
+    android.set(true)
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom(rootProject.file("config/detekt/detekt.yml"))
+    baseline = file("detekt-baseline.xml")
+    parallel = true
+}
+
+tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
+    jvmTarget = "17"
+}
+
+// detekt 1.23 is built against Kotlin 2.0. Keep its own classpath there; the app still compiles with the catalog Kotlin.
+configurations.matching { it.name == "detekt" }.configureEach {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.jetbrains.kotlin") useVersion("2.0.21")
     }
 }
 
