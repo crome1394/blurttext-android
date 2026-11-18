@@ -1,0 +1,5 @@
+- Fixes for Android 12 and Samsung: no crash when Wi-Fi drops, footer above 3-button navigation, readable themes.
+- Computer inbox: blurttext.local address, and clear help when Location hides the Wi-Fi name.
+- Backups include picture messages and attachments in one ZIP, and restore on any phone.
+- New Permissions page and a Privacy statement in About.
+- The chosen app icon is used in recent apps and notifications.
