@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- The chosen app icon is used on the home screen, the recent-apps card, message and computer-inbox notification accents, and the computer inbox tab. Android's App info screen and the default-SMS chooser always show the original icon, because apps cannot change those.
 - The swipe colors use the theme instead of fixed red and green, the Nord dark error color is readable, and palette swatches have an outline so dark ones show on a dark page.
 - Settings has a Permissions page: every permission, why BlurtText needs it, whether it is on, an Allow button, and Open settings for when Android stops asking. Approximate-only location is called out.
 - About has a Privacy statement: no ads, analytics, telemetry, tracking, or spyware, and the four times BlurtText goes online. See [PRIVACY.md](PRIVACY.md).

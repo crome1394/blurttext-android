@@ -54,6 +54,7 @@ class MessagesApp : LanTextApp() {
         scope.launch {
             local.settings.collect { persisted ->
                 LauncherIcons.apply(this@MessagesApp, persisted.launcherIcon)
+                notificationAccent = LauncherIcons.accent(persisted.launcherIcon)
                 pushPhoneSettings(persisted)
             }
         }

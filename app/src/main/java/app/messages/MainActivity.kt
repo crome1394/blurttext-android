@@ -11,8 +11,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import app.messages.ui.LauncherIcons
 import app.messages.ui.MessagesRoot
 import app.messages.ui.MessagesViewModel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MessagesViewModel by viewModels()
@@ -34,6 +41,14 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) viewModel.openFromIntent(intent)
         setContent {
             MessagesRoot(viewModel, onRequestRole = ::requestRole)
+        }
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.settings
+                    .map { it.launcherIcon }
+                    .distinctUntilChanged()
+                    .collect { LauncherIcons.applyToTask(this@MainActivity, it) }
+            }
         }
         requestRemaining()
     }

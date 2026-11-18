@@ -12,6 +12,7 @@ import androidx.core.app.RemoteInput
 import app.messages.MainActivity
 import app.messages.MessagesApp
 import app.messages.R
+import app.messages.ui.LauncherIcons
 
 object MessageNotifier {
     const val CHANNEL = "messages"
@@ -90,6 +91,7 @@ object MessageNotifier {
             NotificationCompat
                 .Builder(context, CHANNEL)
                 .setSmallIcon(R.drawable.ic_stat_message)
+                .setColor(accent(context))
                 .setContentTitle(shownTitle)
                 .setContentText(shownBody)
                 .setStyle(
@@ -130,6 +132,7 @@ object MessageNotifier {
             NotificationCompat
                 .Builder(context, CHANNEL)
                 .setSmallIcon(R.drawable.ic_stat_message)
+                .setColor(accent(context))
                 .setContentTitle(title)
                 .setContentText(body)
                 .setAutoCancel(true)
@@ -151,3 +154,8 @@ private const val STATUS_ID_SPAN = 80
 
 /** Thread notifications start here, above the status ids. */
 private const val THREAD_ID_FLOOR = 100
+
+/** The chosen launcher icon's color, so notifications match the home-screen icon. */
+private fun accent(context: Context): Int =
+    (context.applicationContext as? app.lantext.LanTextApp)?.notificationAccent
+        ?: LauncherIcons.accent("cyan")

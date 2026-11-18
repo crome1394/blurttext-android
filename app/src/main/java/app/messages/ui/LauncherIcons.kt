@@ -1,8 +1,13 @@
 package app.messages.ui
 
+import android.app.Activity
+import android.app.ActivityManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
 import app.messages.R
 
 data class LauncherPreset(
@@ -11,53 +16,169 @@ data class LauncherPreset(
     val foreground: Int,
     val background: Int,
     val alias: String,
+    /** The bubble color, used for notifications and the recent-apps card. */
+    val accent: Long,
+    val mipmap: Int,
 )
 
 object LauncherIcons {
     val presets: List<LauncherPreset> =
         listOf(
-            LauncherPreset("cyan", "Cyan", R.drawable.ic_sms_icon_cyan, R.color.launcher_bg_dark, "app.messages.LauncherCyan"),
-            LauncherPreset("black", "Black", R.drawable.ic_sms_icon_black, R.color.launcher_bg_light, "app.messages.LauncherBlack"),
             LauncherPreset(
-                "dark_blue",
-                "Dark blue",
-                R.drawable.ic_sms_icon_dark_blue,
-                R.color.launcher_bg_dark,
-                "app.messages.LauncherDarkBlue",
+                id = "cyan",
+                label = "Cyan",
+                foreground = R.drawable.ic_sms_icon_cyan,
+                background = R.color.launcher_bg_dark,
+                alias = "app.messages.LauncherCyan",
+                accent = 0xFF75FBFD,
+                mipmap = R.mipmap.ic_launcher_cyan,
             ),
             LauncherPreset(
-                "dark_purple",
-                "Dark purple",
-                R.drawable.ic_sms_icon_dark_purple,
-                R.color.launcher_bg_dark,
-                "app.messages.LauncherDarkPurple",
+                id = "black",
+                label = "Black",
+                foreground = R.drawable.ic_sms_icon_black,
+                background = R.color.launcher_bg_light,
+                alias = "app.messages.LauncherBlack",
+                accent = 0xFF000000,
+                mipmap = R.mipmap.ic_launcher_black,
             ),
             LauncherPreset(
-                "dark_red",
-                "Dark red",
-                R.drawable.ic_sms_icon_dark_red,
-                R.color.launcher_bg_dark,
-                "app.messages.LauncherDarkRed",
+                id = "dark_blue",
+                label = "Dark blue",
+                foreground = R.drawable.ic_sms_icon_dark_blue,
+                background = R.color.launcher_bg_dark,
+                alias = "app.messages.LauncherDarkBlue",
+                accent = 0xFF2854C5,
+                mipmap = R.mipmap.ic_launcher_dark_blue,
             ),
-            LauncherPreset("green", "Green", R.drawable.ic_sms_icon_green, R.color.launcher_bg_dark, "app.messages.LauncherGreen"),
             LauncherPreset(
-                "light_blue",
-                "Light blue",
-                R.drawable.ic_sms_icon_light_blue,
-                R.color.launcher_bg_dark,
-                "app.messages.LauncherLightBlue",
+                id = "dark_purple",
+                label = "Dark purple",
+                foreground = R.drawable.ic_sms_icon_dark_purple,
+                background = R.color.launcher_bg_dark,
+                alias = "app.messages.LauncherDarkPurple",
+                accent = 0xFF8C1AF6,
+                mipmap = R.mipmap.ic_launcher_dark_purple,
             ),
-            LauncherPreset("orange", "Orange", R.drawable.ic_sms_icon_orange, R.color.launcher_bg_dark, "app.messages.LauncherOrange"),
-            LauncherPreset("purple", "Purple", R.drawable.ic_sms_icon_purple, R.color.launcher_bg_dark, "app.messages.LauncherPurple"),
-            LauncherPreset("red", "Red", R.drawable.ic_sms_icon_red, R.color.launcher_bg_dark, "app.messages.LauncherRed"),
-            LauncherPreset("white", "White", R.drawable.ic_sms_icon_white, R.color.launcher_bg_dark, "app.messages.LauncherWhite"),
-            LauncherPreset("yellow", "Yellow", R.drawable.ic_sms_icon_yellow, R.color.launcher_bg_dark, "app.messages.LauncherYellow"),
+            LauncherPreset(
+                id = "dark_red",
+                label = "Dark red",
+                foreground = R.drawable.ic_sms_icon_dark_red,
+                background = R.color.launcher_bg_dark,
+                alias = "app.messages.LauncherDarkRed",
+                accent = 0xFF8B1A10,
+                mipmap = R.mipmap.ic_launcher_dark_red,
+            ),
+            LauncherPreset(
+                id = "green",
+                label = "Green",
+                foreground = R.drawable.ic_sms_icon_green,
+                background = R.color.launcher_bg_dark,
+                alias = "app.messages.LauncherGreen",
+                accent = 0xFF75FB4C,
+                mipmap = R.mipmap.ic_launcher_green,
+            ),
+            LauncherPreset(
+                id = "light_blue",
+                label = "Light blue",
+                foreground = R.drawable.ic_sms_icon_light_blue,
+                background = R.color.launcher_bg_dark,
+                alias = "app.messages.LauncherLightBlue",
+                accent = 0xFF5985E1,
+                mipmap = R.mipmap.ic_launcher_light_blue,
+            ),
+            LauncherPreset(
+                id = "orange",
+                label = "Orange",
+                foreground = R.drawable.ic_sms_icon_orange,
+                background = R.color.launcher_bg_dark,
+                alias = "app.messages.LauncherOrange",
+                accent = 0xFFF19E39,
+                mipmap = R.mipmap.ic_launcher_orange,
+            ),
+            LauncherPreset(
+                id = "purple",
+                label = "Purple",
+                foreground = R.drawable.ic_sms_icon_purple,
+                background = R.color.launcher_bg_dark,
+                alias = "app.messages.LauncherPurple",
+                accent = 0xFFEA33F7,
+                mipmap = R.mipmap.ic_launcher_purple,
+            ),
+            LauncherPreset(
+                id = "red",
+                label = "Red",
+                foreground = R.drawable.ic_sms_icon_red,
+                background = R.color.launcher_bg_dark,
+                alias = "app.messages.LauncherRed",
+                accent = 0xFFEA3323,
+                mipmap = R.mipmap.ic_launcher_red,
+            ),
+            LauncherPreset(
+                id = "white",
+                label = "White",
+                foreground = R.drawable.ic_sms_icon_white,
+                background = R.color.launcher_bg_dark,
+                alias = "app.messages.LauncherWhite",
+                accent = 0xFFFFFFFF,
+                mipmap = R.mipmap.ic_launcher_white,
+            ),
+            LauncherPreset(
+                id = "yellow",
+                label = "Yellow",
+                foreground = R.drawable.ic_sms_icon_yellow,
+                background = R.color.launcher_bg_dark,
+                alias = "app.messages.LauncherYellow",
+                accent = 0xFFFFFF55,
+                mipmap = R.mipmap.ic_launcher_yellow,
+            ),
         )
 
     fun canonical(raw: String): String {
         val id = if (raw == "original") "cyan" else raw
         return presets.firstOrNull { it.id == id }?.id ?: "cyan"
     }
+
+    fun preset(raw: String): LauncherPreset = presets.first { it.id == canonical(raw) }
+
+    /** The chosen icon's color as an ARGB int, for notification accents. */
+    fun accent(raw: String): Int = preset(raw).accent.toInt()
+
+    /**
+     * Shows the chosen icon and color on this app's recent-apps card. Without it Android shows the
+     * manifest icon, which is always cyan.
+     */
+    fun applyToTask(
+        activity: Activity,
+        raw: String,
+    ) {
+        val chosen = preset(raw)
+        val label = activity.getString(R.string.messages_app_name)
+        val description =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ActivityManager.TaskDescription
+                    .Builder()
+                    .setLabel(label)
+                    .setIcon(chosen.mipmap)
+                    .build()
+            } else {
+                taskDescriptionCompat(activity, label, chosen.mipmap)
+            }
+        activity.setTaskDescription(description)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun taskDescriptionCompat(
+        activity: Activity,
+        label: String,
+        mipmap: Int,
+    ): ActivityManager.TaskDescription =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            ActivityManager.TaskDescription(label, mipmap)
+        } else {
+            val icon = ContextCompat.getDrawable(activity, mipmap)?.toBitmap(TASK_ICON_PX, TASK_ICON_PX)
+            ActivityManager.TaskDescription(label, icon)
+        }
 
     /** Enables the chosen launcher alias first, then disables the others. No-ops when it already matches. */
     fun apply(
@@ -105,4 +226,5 @@ object LauncherIcons {
         }
 
     private const val ORIGINAL_ALIAS = "app.messages.LauncherOriginal"
+    private const val TASK_ICON_PX = 192
 }
