@@ -53,6 +53,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -139,13 +140,16 @@ fun SettingsScreen(
         val index = tab.coerceIn(0, settingTabs.lastIndex)
         if (pager.currentPage != index) pager.scrollToPage(index)
     }
+    val backupBusy = remember { mutableStateOf(false) }
     val import =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri != null) {
+                backupBusy.value = true
                 scope.launch {
                     runCatching { vm.importBackup(uri) }
-                        .onSuccess { vm.snackbar.showSnackbar("Imported $it texts") }
-                        .onFailure { vm.snackbar.showSnackbar(it.message ?: "Could not import") }
+                        .onSuccess { vm.snackbar.showSnackbar(it.describe("Restored")) }
+                        .onFailure { vm.snackbar.showSnackbar(it.message ?: "Could not restore the backup") }
+                    backupBusy.value = false
                 }
             }
         }
@@ -280,7 +284,7 @@ fun SettingsScreen(
                             }
 
                             7 -> {
-                                BackupPage(vm, query, context, scope, import)
+                                BackupPage(vm, query, scope, import, backupBusy)
                             }
 
                             8 -> {
@@ -368,7 +372,7 @@ private val tabSearchWords =
         "show message text lock screen notification",
         "keyword filter blocked numbers phrase",
         "klipy api key partner gif",
-        "export import texts json backup",
+        "back up backup restore export import texts picture messages attachments zip",
         "right swipe left swipe change mark as read unread delete none thread trash",
         "ribbon pin unpin mark as read mark as unread delete block archive show hide drag move to the top selected arrangement",
         "footer height search settings computer filter trash icon show hide",
@@ -990,70 +994,81 @@ private fun GifsPage(
 private fun BackupPage(
     vm: MessagesViewModel,
     query: String,
-    context: android.content.Context,
     scope: kotlinx.coroutines.CoroutineScope,
     import: androidx.activity.compose.ManagedActivityResultLauncher<Array<String>, Uri?>,
+    busyState: MutableState<Boolean>,
 ) {
     val page = "Backup"
-    val exportGeneration = remember { mutableIntStateOf(0) }
-    val exportShare =
-        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-            val generation = exportGeneration.intValue
-            if (generation != 0) vm.releaseBackupExport(generation)
+    var busy by busyState
+    val save =
+        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            busy = true
+            scope.launch {
+                runCatching { vm.exportBackup(uri) }
+                    .onSuccess { vm.snackbar.showSnackbar(it.describe("Saved")) }
+                    .onFailure { vm.snackbar.showSnackbar(it.message ?: "Could not save the backup") }
+                busy = false
+            }
         }
     val rows =
         listOf(
-            visible(query, page, "Export texts", "JSON"),
-            visible(query, page, "Import texts", "backup"),
+            visible(query, page, "Back up messages", "export", "zip", "attachments", "pictures"),
+            visible(query, page, "Restore messages", "import", "backup"),
         )
     if (rows.none { it }) {
         NoMatches()
         return
     }
     LazyColumn(Modifier.fillMaxSize()) {
+        if (busy) {
+            item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+        }
         if (rows[0]) {
-            item {
-                SettingsListItem(
-                    headlineContent = { Text("Export texts") },
-                    supportingContent = { Text("A JSON file of texts. Picture files are not included.") },
-                    trailingContent = {
-                        TextButton(onClick = {
-                            scope.launch {
-                                runCatching { vm.exportBackup() }
-                                    .onSuccess { exported ->
-                                        exportGeneration.intValue = exported.generation
-                                        val uri = FileProvider.getUriForFile(context, context.packageName + ".files", exported.file)
-                                        val share =
-                                            Intent(Intent.ACTION_SEND)
-                                                .setType("application/json")
-                                                .putExtra(Intent.EXTRA_STREAM, uri)
-                                                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                        runCatching {
-                                            exportShare.launch(Intent.createChooser(share, "Export texts"))
-                                        }.onFailure {
-                                            vm.releaseBackupExport(exported.generation, delayMs = 0)
-                                            vm.snackbar.showSnackbar(it.message ?: "Could not export")
-                                        }
-                                    }.onFailure { vm.snackbar.showSnackbar(it.message ?: "Could not export") }
-                            }
-                        }) { Text("Export") }
-                    },
-                )
-            }
+            item { BackupRow(enabled = !busy) { save.launch(backupFileName()) } }
         }
         if (rows[1]) {
             item {
-                SettingsListItem(
-                    headlineContent = { Text("Import texts") },
-                    supportingContent = { Text("Adds texts from a backup made by this app. Matching texts are skipped.") },
-                    trailingContent = {
-                        TextButton(onClick = { import.launch(arrayOf("application/json", "text/*", "*/*")) }) { Text("Import") }
-                    },
-                )
+                RestoreRow(enabled = !busy) {
+                    import.launch(arrayOf("application/zip", "application/json", "application/octet-stream", "*/*"))
+                }
             }
         }
     }
 }
+
+@Composable
+private fun BackupRow(
+    enabled: Boolean,
+    onBackUp: () -> Unit,
+) {
+    SettingsListItem(
+        headlineContent = { Text("Back up messages") },
+        supportingContent = {
+            Text("Saves every text and picture message, with photos, videos, and audio, in one ZIP file. Pick where it goes.")
+        },
+        trailingContent = { TextButton(enabled = enabled, onClick = onBackUp) { Text("Back up") } },
+    )
+}
+
+@Composable
+private fun RestoreRow(
+    enabled: Boolean,
+    onRestore: () -> Unit,
+) {
+    SettingsListItem(
+        headlineContent = { Text("Restore messages") },
+        supportingContent = {
+            Text(
+                "Adds messages from a BlurtText backup. Messages already on this phone are skipped, so nothing is replaced " +
+                    "or deleted. BlurtText must be the default SMS app.",
+            )
+        },
+        trailingContent = { TextButton(enabled = enabled, onClick = onRestore) { Text("Restore") } },
+    )
+}
+
+private fun backupFileName(): String = "blurttext-backup-${java.time.LocalDate.now()}.zip"
 
 private val swipeChoices =
     listOf(

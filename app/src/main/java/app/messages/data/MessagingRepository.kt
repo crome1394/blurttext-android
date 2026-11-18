@@ -689,98 +689,14 @@ class MessagingRepository(
         return FileProvider.getUriForFile(context, context.packageName + ".files", file)
     }
 
-    fun exportTo(file: File) {
-        file.parentFile?.mkdirs()
-        file.bufferedWriter().use { writer ->
-            writer.write("{\"version\":1,\"messages\":[")
-            var first = true
+    /** Saves every text, picture message, and attachment as a backup ZIP. See [BackupManifest]. */
+    fun exportBackup(out: java.io.OutputStream): BackupSummary = BackupWriter(context, ::ownNumbers).write(out)
 
-            fun writeMessage(
-                address: String,
-                body: String,
-                timestamp: Long,
-                incoming: Boolean,
-                type: String,
-            ) {
-                if (!first) writer.write(",")
-                first = false
-                writer.write("{\"address\":")
-                writer.write(jsonString(address))
-                writer.write(",\"body\":")
-                writer.write(jsonString(body))
-                writer.write(",\"timestamp\":")
-                writer.write(timestamp.toString())
-                writer.write(",\"incoming\":")
-                writer.write(incoming.toString())
-                writer.write(",\"type\":")
-                writer.write(jsonString(type))
-                writer.write("}")
-            }
-            context.contentResolver
-                .query(
-                    Telephony.Sms.CONTENT_URI,
-                    arrayOf(Telephony.Sms.ADDRESS, Telephony.Sms.BODY, Telephony.Sms.DATE, Telephony.Sms.TYPE),
-                    null,
-                    null,
-                    "${Telephony.Sms.DATE} ASC",
-                )?.use { cursor ->
-                    val address = cursor.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)
-                    val body = cursor.getColumnIndexOrThrow(Telephony.Sms.BODY)
-                    val date = cursor.getColumnIndexOrThrow(Telephony.Sms.DATE)
-                    val type = cursor.getColumnIndexOrThrow(Telephony.Sms.TYPE)
-                    while (cursor.moveToNext()) {
-                        val kind = cursor.getInt(type)
-                        if (kind == Telephony.Sms.MESSAGE_TYPE_DRAFT) continue
-                        writeMessage(
-                            cursor.getString(address).orEmpty(),
-                            cursor.getString(body).orEmpty(),
-                            cursor.getLong(date),
-                            kind == Telephony.Sms.MESSAGE_TYPE_INBOX,
-                            "sms",
-                        )
-                    }
-                }
-            writer.write("]}")
-        }
-    }
-
-    fun importFrom(text: String): Int {
-        val backup = Json { ignoreUnknownKeys = true }.decodeFromString(BackupFile.serializer(), text)
-        val existing = HashSet<String>()
-        context.contentResolver
-            .query(
-                Telephony.Sms.CONTENT_URI,
-                arrayOf(Telephony.Sms.ADDRESS, Telephony.Sms.BODY, Telephony.Sms.DATE),
-                null,
-                null,
-                null,
-            )?.use { cursor ->
-                val address = cursor.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)
-                val body = cursor.getColumnIndexOrThrow(Telephony.Sms.BODY)
-                val date = cursor.getColumnIndexOrThrow(Telephony.Sms.DATE)
-                while (cursor.moveToNext()) {
-                    existing += key(cursor.getString(address).orEmpty(), cursor.getLong(date), cursor.getString(body).orEmpty())
-                }
-            }
-        var added = 0
-        for (message in backup.messages) {
-            if (message.type != "sms" || message.body.isBlank() || message.address.isBlank()) continue
-            val id = key(message.address, message.timestamp, message.body)
-            if (!existing.add(id)) continue
-            val uri = if (message.incoming) Telephony.Sms.Inbox.CONTENT_URI else Telephony.Sms.Sent.CONTENT_URI
-            val values =
-                ContentValues().apply {
-                    put(Telephony.Sms.ADDRESS, message.address)
-                    put(Telephony.Sms.BODY, message.body)
-                    put(Telephony.Sms.DATE, message.timestamp)
-                    put(Telephony.Sms.READ, 1)
-                    put(Telephony.Sms.SEEN, 1)
-                }
-            context.contentResolver.insert(uri, values)
-            added += 1
-        }
+    /** Adds the messages in a backup (ZIP, or a version 1 JSON) that are not on the phone yet. */
+    fun importBackup(input: java.io.InputStream): BackupSummary {
+        val summary = BackupRestorer(context, ::ownNumbers).restore(input)
         ping()
-        return added
+        return summary
     }
 
     fun exportThread(threadId: Long): String {
@@ -2056,7 +1972,6 @@ class MessagingRepository(
         private const val PART_SNIFF_BYTES = 16
         private const val NAMES_CACHE_MS = 30_000L
         private const val MIN_NAME_KEY_LENGTH = 3
-        private const val FIRST_PRINTABLE = 0x20
 
         /** A date above this is already in milliseconds (seconds would be past the year 2286). */
         private const val MILLIS_THRESHOLD = 10_000_000_000L
@@ -2068,42 +1983,5 @@ class MessagingRepository(
         private fun mmsMillis(raw: Long): Long = if (raw > MILLIS_THRESHOLD) raw else TimeUnit.SECONDS.toMillis(raw)
 
         private fun nowSeconds(): Long = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis())
-
-        private fun key(
-            address: String,
-            timestamp: Long,
-            body: String,
-        ) = "$address|$timestamp|$body"
-
-        private fun jsonString(value: String): String =
-            buildString {
-                append('"')
-                for (ch in value) {
-                    when (ch) {
-                        '\\' -> append("\\\\")
-                        '"' -> append("\\\"")
-                        '\n' -> append("\\n")
-                        '\r' -> append("\\r")
-                        '\t' -> append("\\t")
-                        else -> if (ch.code < FIRST_PRINTABLE) append("\\u%04x".format(ch.code)) else append(ch)
-                    }
-                }
-                append('"')
-            }
     }
 }
-
-@Serializable
-data class BackupFile(
-    val version: Int = 1,
-    val messages: List<BackupMessage> = emptyList(),
-)
-
-@Serializable
-data class BackupMessage(
-    val address: String = "",
-    val body: String = "",
-    val timestamp: Long = 0,
-    val incoming: Boolean = true,
-    val type: String = "sms",
-)

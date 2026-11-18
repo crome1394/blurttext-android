@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Backups include picture messages and their photos, videos, and audio, in one ZIP file saved with the system "Save as" screen. Restore keeps read state, sent and failed status, and conversation dates, skips messages already on the phone, and still reads older JSON backups. See [docs/backup.md](docs/backup.md).
 - Every theme keeps button, bubble, and link text readable in light and dark mode. Sheets, menus, and fields use the theme colors instead of a lavender default, settings pages follow the theme instead of black, and dark mode no longer flashes white on launch.
 - With three-button navigation, the inbox footer and the conversation composer sit above the Back, Home, and Recents buttons instead of under them.
 - When Location is off or only approximate location is allowed, the computer inbox says so and offers a button for the setting, instead of showing no network and no QR code.

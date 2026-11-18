@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import app.lantext.notify.Notifications
 import app.lantext.sms.GifSearch
 import app.messages.MessagesApp
+import app.messages.data.BackupSummary
 import app.messages.data.ChatMessage
 import app.messages.data.ContactHit
 import app.messages.data.Conversation
@@ -50,11 +51,6 @@ import java.util.ArrayDeque
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
-class BackupExport(
-    val file: File,
-    val generation: Int,
-)
-
 sealed interface Screen {
     data object Inbox : Screen
 
@@ -82,7 +78,6 @@ sealed interface Screen {
 class MessagesViewModel(
     app: Application,
 ) : AndroidViewModel(app) {
-    private val backupExportGeneration = AtomicInteger()
     private val messages = MessagesApp.from(app)
     private val repo = messages.messaging
     private val local = messages.local
@@ -771,39 +766,24 @@ class MessagesViewModel(
 
     fun exportThreadText(threadId: Long): String = repo.exportThread(threadId)
 
-    suspend fun exportBackup(): BackupExport =
+    /** Streams a backup ZIP into [uri], a document the user created with the system file picker. */
+    suspend fun exportBackup(uri: Uri): BackupSummary =
         withContext(Dispatchers.IO) {
-            val file = backupExportFile()
-            val generation = backupExportGeneration.incrementAndGet()
-            attempt {
-                repo.exportTo(file)
-            }.onFailure { t ->
-                file.delete()
-                throw t
-            }
-            BackupExport(file, generation)
+            val resolver = getApplication<Application>().contentResolver
+            val out =
+                attempt { resolver.openOutputStream(uri, "w") }.getOrNull()
+                    ?: error("That location could not be written. Pick another folder.")
+            out.use { repo.exportBackup(it) }
         }
 
-    fun releaseBackupExport(
-        generation: Int,
-        delayMs: Long = 20_000,
-    ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            // The share target opens the file after the sheet closes.
-            if (delayMs > 0) delay(delayMs)
-            if (backupExportGeneration.get() != generation) return@launch
-            backupExportFile().delete()
-        }
-    }
-
-    private fun backupExportFile(): File = File(getApplication<Application>().cacheDir, "messages-backup.json")
-
-    suspend fun importBackup(uri: Uri): Int =
+    suspend fun importBackup(uri: Uri): BackupSummary =
         withContext(Dispatchers.IO) {
-            val text =
-                getApplication<Application>().contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() }
-                    ?: error("Could not read that file")
-            repo.importFrom(text)
+            val app = getApplication<Application>()
+            if (!SmsRole.isDefault(app)) error("Set BlurtText as the default SMS app to restore messages.")
+            val input =
+                attempt { app.contentResolver.openInputStream(uri) }.getOrNull()
+                    ?: error("That file could not be opened. It may have been moved or deleted.")
+            input.use { repo.importBackup(it) }
         }
 
     private fun deleteConversations(ids: Set<Long>) {
