@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Every theme keeps button, bubble, and link text readable in light and dark mode. Sheets, menus, and fields use the theme colors instead of a lavender default, settings pages follow the theme instead of black, and dark mode no longer flashes white on launch.
 - With three-button navigation, the inbox footer and the conversation composer sit above the Back, Home, and Recents buttons instead of under them.
 - When Location is off or only approximate location is allowed, the computer inbox says so and offers a button for the setting, instead of showing no network and no QR code.
 - Fixed a crash on Android 12 and later when Wi-Fi dropped while the computer inbox was on, and a second crash when Android restarted the app in the background.

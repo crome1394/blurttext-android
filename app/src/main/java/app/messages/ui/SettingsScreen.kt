@@ -228,25 +228,16 @@ fun SettingsScreen(vm: MessagesViewModel, onRequestRole: () -> Unit) {
                 }
                 HorizontalPager(
                     state = pager,
-                    modifier = Modifier.fillMaxWidth().weight(1f).background(Color.Black),
+                    modifier = Modifier.fillMaxWidth().weight(1f).background(MaterialTheme.colorScheme.mailCanvas()),
                     beyondViewportPageCount = 0,
                     flingBehavior = PagerDefaults.flingBehavior(
                         state = pager,
                         snapAnimationSpec = tween(durationMillis = 180),
                     ),
                 ) { page ->
-                    val scheme = MaterialTheme.colorScheme
-                    val pageScheme = if (contrastRatio(scheme.onSurface, Color.Black) >= 4.5f) {
-                        scheme
-                    } else {
-                        scheme.copy(
-                            onSurface = Color.White,
-                            onSurfaceVariant = Color(0xFFCAC4D0),
-                            onBackground = Color.White,
-                        )
-                    }
-                    MaterialTheme(colorScheme = pageScheme) {
-                    Box(Modifier.fillMaxSize().background(Color.Black)) {
+                    // Pages use the theme's own canvas. A fixed black page left the palette's
+                    // accent text (links, headings) close to invisible.
+                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.mailCanvas())) {
                     when (page) {
                         0 -> SettingsGeneralPage(vm, settings, isDefault, query, onRequestRole) {
                             scope.launch { pager.animateScrollToPage(SETTINGS_TAB_LAN_MESSAGING) }
@@ -266,7 +257,6 @@ fun SettingsScreen(vm: MessagesViewModel, onRequestRole: () -> Unit) {
                             else LanMessagingPage(active = pager.currentPage == page)
                         }
                         else -> AboutPage(query)
-                    }
                     }
                     }
                 }

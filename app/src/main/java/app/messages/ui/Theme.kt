@@ -70,37 +70,89 @@ private data class ColorSet(
     val outgoingInk: Color,
     val danger: Color,
 ) {
-    fun light() = lightColorScheme(
-        primary = primary,
-        onPrimary = Color.White,
-        primaryContainer = outgoing,
-        onPrimaryContainer = outgoingInk,
-        secondary = strong,
-        secondaryContainer = incoming,
-        background = bg,
-        surface = bg,
-        onSurface = ink,
-        onSurfaceVariant = muted,
-        surfaceVariant = incoming,
-        outline = line,
-        error = danger,
-    )
+    fun light() = roles(dark = false)
 
-    fun dark() = darkColorScheme(
-        primary = primary,
-        onPrimary = outgoingInk,
-        primaryContainer = outgoing,
-        onPrimaryContainer = outgoingInk,
-        secondary = strong,
-        secondaryContainer = incoming,
-        background = bg,
-        surface = bg,
-        onSurface = ink,
-        onSurfaceVariant = muted,
-        surfaceVariant = incoming,
-        outline = line,
-        error = danger,
-    )
+    fun dark() = roles(dark = true)
+
+    /**
+     * Fills every Material role from the palette. Roles left unset fall back to
+     * Material's purple baseline, which showed up as lavender sheets and menus.
+     * Text colors are checked against what they sit on and swapped or deepened
+     * when a palette pair would be hard to read.
+     */
+    private fun roles(dark: Boolean): ColorScheme {
+        val darkText = if (dark) bg else ink
+        val canvas = if (dark) bg.toward(Color.White, 0.20f) else bg.toward(Color.Black, 0.07f)
+        val accent = ensureContrast(primary, listOf(bg, canvas), toward = ink)
+        val second = ensureContrast(strong, listOf(bg, canvas), toward = ink)
+        val onAccent = readableOn(accent, if (dark) outgoingInk else Color.White, darkText)
+        val onSecond = readableOn(second, onAccent, darkText)
+        // A sent bubble keeps its palette ink. When that ink is too faint, the bubble deepens.
+        val bubble = ensureContrast(
+            outgoing,
+            listOf(outgoingInk),
+            toward = if (outgoingInk.luminance() > 0.5f) Color.Black else Color.White,
+        )
+        val onOutgoing = readableOn(bubble, outgoingInk, darkText)
+        val onIncoming = readableOn(incoming, ink, darkText)
+        val toward = if (dark) Color.White else Color.Black
+        fun step(amount: Float) = bg.toward(toward, amount)
+        val base = if (dark) darkColorScheme() else lightColorScheme()
+        return base.copy(
+            primary = accent,
+            onPrimary = onAccent,
+            primaryContainer = bubble,
+            onPrimaryContainer = onOutgoing,
+            inversePrimary = primary,
+            secondary = second,
+            onSecondary = onSecond,
+            secondaryContainer = incoming,
+            onSecondaryContainer = onIncoming,
+            tertiary = second,
+            onTertiary = onSecond,
+            tertiaryContainer = incoming,
+            onTertiaryContainer = onIncoming,
+            background = bg,
+            onBackground = ink,
+            surface = bg,
+            onSurface = ink,
+            surfaceVariant = incoming,
+            onSurfaceVariant = ensureContrast(muted, listOf(bg, canvas, incoming), toward = ink),
+            surfaceTint = accent,
+            inverseSurface = ink,
+            inverseOnSurface = bg,
+            error = ensureContrast(danger, listOf(bg, canvas), toward = ink),
+            onError = readableOn(danger, Color.White, darkText),
+            outline = line,
+            outlineVariant = line,
+            surfaceDim = if (dark) bg else step(0.10f),
+            surfaceBright = if (dark) step(0.16f) else bg,
+            surfaceContainerLowest = if (dark) bg.toward(Color.Black, 0.30f) else Color.White,
+            surfaceContainerLow = step(if (dark) 0.04f else 0.02f),
+            surfaceContainer = step(if (dark) 0.07f else 0.04f),
+            surfaceContainerHigh = step(if (dark) 0.10f else 0.06f),
+            surfaceContainerHighest = step(if (dark) 0.14f else 0.09f),
+        )
+    }
+}
+
+private const val READABLE = 4.5f
+
+/** [preferred] when it reads on [background], otherwise whichever of [dark] or white reads better. */
+internal fun readableOn(background: Color, preferred: Color, dark: Color): Color {
+    if (contrastRatio(preferred, background) >= READABLE) return preferred
+    return if (contrastRatio(dark, background) >= contrastRatio(Color.White, background)) dark else Color.White
+}
+
+/** Moves [color] toward [toward] in small steps until it reads on every one of [backgrounds]. */
+internal fun ensureContrast(color: Color, backgrounds: List<Color>, toward: Color): Color {
+    var amount = 0f
+    var out = color
+    while (amount < 1f && backgrounds.any { contrastRatio(out, it) < READABLE }) {
+        amount += 0.05f
+        out = color.toward(toward, amount.coerceAtMost(1f))
+    }
+    return out
 }
 
 private fun Color.toward(other: Color, amount: Float): Color = lerp(this, other, amount)
