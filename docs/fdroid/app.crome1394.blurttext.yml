@@ -25,9 +25,9 @@ Repo: https://github.com/crome1394/blurttext-android.git
 Binaries: https://github.com/crome1394/blurttext-android/releases/download/v%v/blurttext-%v.apk
 
 Builds:
-  - versionName: 0.1.5
-    versionCode: 6
-    commit: a504147c0acabb9ab983f88460ab5b285354f237
+  - versionName: 0.1.6
+    versionCode: 7
+    commit: d865b8a2a10bdd492c209a5fffb317c3c0420779
     subdir: app
     submodules: true
     gradle:
@@ -38,8 +38,8 @@ AllowedAPKSigningKeys: 86553f85b064710091bbf1df7e82a9c90ebb6dba310037bcf902d2144
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
 UpdateCheckData: app/build.gradle.kts|versionCode\s*=\s*(\d+)|.|versionName\s*=\s*"([^"]+)"
-CurrentVersion: 0.1.5
-CurrentVersionCode: 6
+CurrentVersion: 0.1.6
+CurrentVersionCode: 7
 
 AntiFeatures:
   NonFreeNet:
