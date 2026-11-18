@@ -1,0 +1,105 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:GifPicker.kt$@Composable fun GifPicker( hasKey: Boolean, searchGifs: suspend (String) -&gt; List&lt;KlipyGifs.Hit&gt;, attachGif: suspend (KlipyGifs.Hit) -&gt; String, onAttached: (String) -&gt; Unit, onError: (String) -&gt; Unit, onOpenSettings: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>CyclomaticComplexMethod:InboxGroups.kt$fun groupInbox( rows: List&lt;Conversation&gt;, mode: String, now: Long, zone: ZoneId = ZoneId.systemDefault(), weekFields: WeekFields = WeekFields.of(Locale.getDefault()), ): List&lt;InboxSection&gt;</ID>
+    <ID>CyclomaticComplexMethod:InboxScreen.kt$@OptIn(ExperimentalFoundationApi::class) @Composable private fun SwipeConversation( conversation: Conversation, selected: Boolean, striped: Boolean, swipeEnabled: Boolean, startAction: String, endAction: String, onLongPress: () -&gt; Unit, onClick: () -&gt; Unit, onAvatar: () -&gt; Unit, onPin: () -&gt; Unit, onUnread: () -&gt; Unit, onRead: () -&gt; Unit, onDelete: () -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:InboxScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun InboxScreen( vm: MessagesViewModel, onRequestRole: () -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:MessagingRepository.kt$MessagingRepository$fun contactCard(contactUri: Uri): String?</ID>
+    <ID>CyclomaticComplexMethod:MessagingRepository.kt$MessagingRepository$fun storeRetrievedMms( placeholder: Uri, pdu: ByteArray, fallbackFrom: String, ): Long</ID>
+    <ID>CyclomaticComplexMethod:MessagingRepository.kt$MessagingRepository$private fun latestMmsThreads(): Set&lt;Long&gt;</ID>
+    <ID>CyclomaticComplexMethod:MessagingRepository.kt$MessagingRepository$private fun latestPreview(threadId: Long): LatestPreview</ID>
+    <ID>CyclomaticComplexMethod:MessagingRepository.kt$MessagingRepository$private fun loadConversations(): List&lt;Conversation&gt;</ID>
+    <ID>CyclomaticComplexMethod:MmsNotificationParser.kt$MmsNotificationParser$private fun read(pdu: ByteArray): Notification?</ID>
+    <ID>CyclomaticComplexMethod:MmsRetrieveParser.kt$MmsRetrieveParser$private fun read(pdu: ByteArray): Retrieved?</ID>
+    <ID>CyclomaticComplexMethod:OrderableRows.kt$@Composable fun OrderableRows( items: List&lt;RibbonItem&gt;, label: (RibbonItem) -&gt; String, onReorder: (List&lt;RibbonItem&gt;) -&gt; Unit, onShown: (RibbonItem, Boolean) -&gt; Unit, icon: @Composable (RibbonItem) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>CyclomaticComplexMethod:Reactions.kt$private fun quoteMatches( body: String, rawQuote: String, ): Boolean</ID>
+    <ID>CyclomaticComplexMethod:Receivers.kt$MmsDownloadReceiver$override fun onReceive( context: Context, intent: Intent?, )</ID>
+    <ID>CyclomaticComplexMethod:Receivers.kt$SmsDeliverReceiver$override fun onReceive( context: Context, intent: Intent?, )</ID>
+    <ID>CyclomaticComplexMethod:SendPipeline.kt$SendPipeline$private fun insertOutgoingMms( context: Context, threadId: Long, addresses: List&lt;String&gt;, body: String, attachment: ByteArray?, mime: String?, subId: Int, )</ID>
+    <ID>CyclomaticComplexMethod:SettingsScreen.kt$@Composable private fun SettingsGeneralPage( vm: MessagesViewModel, settings: app.messages.data.Persisted, isDefault: Boolean, query: String, onRequestRole: () -&gt; Unit, onOpenLanMessaging: () -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:SettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun SettingsScreen( vm: MessagesViewModel, onRequestRole: () -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:ThreadScreen.kt$@OptIn(ExperimentalFoundationApi::class) @Composable private fun MessageBubble( message: ChatMessage, reactions: List&lt;app.messages.sms.BubbleReaction&gt;, group: Boolean, indicator: String, caption: String, loadPart: suspend (Long) -&gt; ByteArray?, onLongPress: () -&gt; Unit, onRetry: () -&gt; Unit, onImage: (Long) -&gt; Unit, onOpenLink: (String) -&gt; Unit, onCopyCode: (String) -&gt; Unit, onOpenPart: (Long, String) -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:ThreadScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ComposeScreen( vm: MessagesViewModel, initialAddresses: List&lt;String&gt;, initialBody: String, initialAttachment: String?, )</ID>
+    <ID>CyclomaticComplexMethod:ThreadScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun Composer( text: String, onText: (String) -&gt; Unit, attachment: String?, onAttachment: (String?) -&gt; Unit, copyAttachment: (Uri) -&gt; String, takeVideo: (Uri) -&gt; String, hasGifKey: Boolean, searchGifs: suspend (String) -&gt; List&lt;KlipyGifs.Hit&gt;, attachGif: suspend (KlipyGifs.Hit) -&gt; String, onOpenSettings: () -&gt; Unit, onSchedule: () -&gt; Unit, sending: Boolean, enterSends: Boolean, sims: List&lt;SimLine&gt;, subId: Int?, onSub: (Int) -&gt; Unit, onSend: () -&gt; Unit, scheduleEnabled: Boolean, onError: (String) -&gt; Unit, onLocation: () -&gt; Unit, onContact: () -&gt; Unit, )</ID>
+    <ID>CyclomaticComplexMethod:ThreadScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class) @Composable fun ThreadScreen( vm: MessagesViewModel, threadId: Long, )</ID>
+    <ID>CyclomaticComplexMethod:VerificationCodes.kt$VerificationCodes$fun find(text: String): String?</ID>
+    <ID>CyclomaticComplexMethod:VerificationCodes.kt$VerificationCodes$private fun isMoney( text: String, start: Int, end: Int, ): Boolean</ID>
+    <ID>LargeClass:MessageLogicTest.kt$MessageLogicTest</ID>
+    <ID>LargeClass:MessagesViewModel.kt$MessagesViewModel : AndroidViewModel</ID>
+    <ID>LargeClass:MessagingRepository.kt$MessagingRepository</ID>
+    <ID>LongMethod:GifPicker.kt$@Composable fun GifPicker( hasKey: Boolean, searchGifs: suspend (String) -&gt; List&lt;KlipyGifs.Hit&gt;, attachGif: suspend (KlipyGifs.Hit) -&gt; String, onAttached: (String) -&gt; Unit, onError: (String) -&gt; Unit, onOpenSettings: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>LongMethod:InboxScreen.kt$@Composable private fun InboxFooter( label: String, filterCaption: String, height: Int, items: List&lt;RibbonItem&gt;, searchOpen: Boolean, filterActive: Boolean, onSearch: () -&gt; Unit, onSettings: () -&gt; Unit, onComputer: () -&gt; Unit, onFilter: () -&gt; Unit, onTrash: () -&gt; Unit, )</ID>
+    <ID>LongMethod:InboxScreen.kt$@OptIn(ExperimentalFoundationApi::class) @Composable private fun ConversationRow( conversation: Conversation, selected: Boolean, onClick: () -&gt; Unit, onLongPress: () -&gt; Unit, onAvatar: () -&gt; Unit, onPin: () -&gt; Unit, striped: Boolean = false, modifier: Modifier = Modifier, )</ID>
+    <ID>LongMethod:InboxScreen.kt$@OptIn(ExperimentalFoundationApi::class) @Composable private fun SwipeConversation( conversation: Conversation, selected: Boolean, striped: Boolean, swipeEnabled: Boolean, startAction: String, endAction: String, onLongPress: () -&gt; Unit, onClick: () -&gt; Unit, onAvatar: () -&gt; Unit, onPin: () -&gt; Unit, onUnread: () -&gt; Unit, onRead: () -&gt; Unit, onDelete: () -&gt; Unit, )</ID>
+    <ID>LongMethod:InboxScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun InboxScreen( vm: MessagesViewModel, onRequestRole: () -&gt; Unit, )</ID>
+    <ID>LongMethod:LanMessagingPage.kt$@Composable fun LanMessagingPage(active: Boolean)</ID>
+    <ID>LongMethod:MessageLogicTest.kt$MessageLogicTest$@Test fun inboxGroupsKeepOrderAndDropEmptySections()</ID>
+    <ID>LongMethod:MessageLogicTest.kt$MessageLogicTest$@Test fun titlesAndTimes()</ID>
+    <ID>LongMethod:MessageNotifier.kt$MessageNotifier$fun notifyIncoming( context: Context, threadId: Long, address: String, title: String, body: String, whenMs: Long, )</ID>
+    <ID>LongMethod:MessagesRoot.kt$@Composable fun MessagesRoot( vm: MessagesViewModel, onRequestRole: () -&gt; Unit, )</ID>
+    <ID>LongMethod:MessagingRepository.kt$MessagingRepository$fun storeRetrievedMms( placeholder: Uri, pdu: ByteArray, fallbackFrom: String, ): Long</ID>
+    <ID>LongMethod:MessagingRepository.kt$MessagingRepository$private fun latestPreview(threadId: Long): LatestPreview</ID>
+    <ID>LongMethod:MessagingRepository.kt$MessagingRepository$private fun loadConversations(): List&lt;Conversation&gt;</ID>
+    <ID>LongMethod:MmsNotificationParser.kt$MmsNotificationParser$private fun read(pdu: ByteArray): Notification?</ID>
+    <ID>LongMethod:OrderableRows.kt$@Composable fun OrderableRows( items: List&lt;RibbonItem&gt;, label: (RibbonItem) -&gt; String, onReorder: (List&lt;RibbonItem&gt;) -&gt; Unit, onShown: (RibbonItem, Boolean) -&gt; Unit, icon: @Composable (RibbonItem) -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>LongMethod:Receivers.kt$MmsDownloadReceiver$override fun onReceive( context: Context, intent: Intent?, )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@Composable private fun AboutPage(query: String)</ID>
+    <ID>LongMethod:SettingsScreen.kt$@Composable private fun AppearancePage( vm: MessagesViewModel, settings: app.messages.data.Persisted, query: String, )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@Composable private fun BackupPage( vm: MessagesViewModel, query: String, context: android.content.Context, scope: kotlinx.coroutines.CoroutineScope, import: androidx.activity.compose.ManagedActivityResultLauncher&lt;Array&lt;String&gt;, Uri?&gt;, )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@Composable private fun FooterPage( vm: MessagesViewModel, settings: app.messages.data.Persisted, query: String, )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@Composable private fun RibbonPage( vm: MessagesViewModel, settings: app.messages.data.Persisted, query: String, )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@Composable private fun SendingPage( vm: MessagesViewModel, settings: app.messages.data.Persisted, exact: Boolean, context: android.content.Context, query: String, )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@Composable private fun SettingsGeneralPage( vm: MessagesViewModel, settings: app.messages.data.Persisted, isDefault: Boolean, query: String, onRequestRole: () -&gt; Unit, onOpenLanMessaging: () -&gt; Unit, )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@Composable private fun SwipePage( vm: MessagesViewModel, settings: app.messages.data.Persisted, query: String, )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@OptIn(ExperimentalLayoutApi::class) @Composable private fun CarrierPage( vm: MessagesViewModel, settings: app.messages.data.Persisted, query: String, )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun SettingsScreen( vm: MessagesViewModel, onRequestRole: () -&gt; Unit, )</ID>
+    <ID>LongMethod:ThreadScreen.kt$@OptIn(ExperimentalFoundationApi::class) @Composable private fun MessageBubble( message: ChatMessage, reactions: List&lt;app.messages.sms.BubbleReaction&gt;, group: Boolean, indicator: String, caption: String, loadPart: suspend (Long) -&gt; ByteArray?, onLongPress: () -&gt; Unit, onRetry: () -&gt; Unit, onImage: (Long) -&gt; Unit, onOpenLink: (String) -&gt; Unit, onCopyCode: (String) -&gt; Unit, onOpenPart: (Long, String) -&gt; Unit, )</ID>
+    <ID>LongMethod:ThreadScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ComposeScreen( vm: MessagesViewModel, initialAddresses: List&lt;String&gt;, initialBody: String, initialAttachment: String?, )</ID>
+    <ID>LongMethod:ThreadScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun Composer( text: String, onText: (String) -&gt; Unit, attachment: String?, onAttachment: (String?) -&gt; Unit, copyAttachment: (Uri) -&gt; String, takeVideo: (Uri) -&gt; String, hasGifKey: Boolean, searchGifs: suspend (String) -&gt; List&lt;KlipyGifs.Hit&gt;, attachGif: suspend (KlipyGifs.Hit) -&gt; String, onOpenSettings: () -&gt; Unit, onSchedule: () -&gt; Unit, sending: Boolean, enterSends: Boolean, sims: List&lt;SimLine&gt;, subId: Int?, onSub: (Int) -&gt; Unit, onSend: () -&gt; Unit, scheduleEnabled: Boolean, onError: (String) -&gt; Unit, onLocation: () -&gt; Unit, onContact: () -&gt; Unit, )</ID>
+    <ID>LongMethod:ThreadScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class) @Composable fun ThreadScreen( vm: MessagesViewModel, threadId: Long, )</ID>
+    <ID>LongMethod:TrashScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class) @Composable fun TrashScreen(vm: MessagesViewModel)</ID>
+    <ID>LongParameterList:Format.kt$( incoming: Boolean, party: String, time: String, mms: Boolean, sim: String, showDirection: Boolean, showParty: Boolean, showTime: Boolean, showType: Boolean, showSim: Boolean, )</ID>
+    <ID>LongParameterList:LocalStore.kt$( conversations: List&lt;Conversation&gt;, trash: List&lt;TrashedThread&gt;, autoEnabled: Boolean, days: Int, now: Long, openThreadId: Long, pinned: Set&lt;Long&gt;, )</ID>
+    <ID>LongParameterList:MessageNotifier.kt$MessageNotifier$( context: Context, threadId: Long, address: String, title: String, body: String, whenMs: Long, )</ID>
+    <ID>LongParameterList:MmsInbound.kt$MmsInbound$( context: Context, placeholder: Uri, location: String, from: String, subId: Int, quiet: Boolean, )</ID>
+    <ID>LongParameterList:SendPipeline.kt$SendPipeline$( context: Context, addresses: List&lt;String&gt;, body: String, attachment: ByteArray?, mime: String?, subId: Int?, deliveryReports: Boolean, )</ID>
+    <ID>LongParameterList:SendPipeline.kt$SendPipeline$( context: Context, threadId: Long, addresses: List&lt;String&gt;, body: String, attachment: ByteArray?, mime: String?, subId: Int, )</ID>
+    <ID>LongParameterList:Theme.kt$( dark: Boolean, primary: Long, strong: Long, bg: Long, ink: Long, muted: Long, line: Long, incoming: Long, outgoing: Long, outgoingInk: Long, danger: Long, )</ID>
+    <ID>LoopWithTooManyJumpStatements:InboxScreen.kt$while</ID>
+    <ID>LoopWithTooManyJumpStatements:MessagingRepository.kt$MessagingRepository$for</ID>
+    <ID>LoopWithTooManyJumpStatements:MessagingRepository.kt$MessagingRepository$while</ID>
+    <ID>LoopWithTooManyJumpStatements:OrderableRows.kt$while</ID>
+    <ID>LoopWithTooManyJumpStatements:VerificationCodes.kt$VerificationCodes$for</ID>
+    <ID>NestedBlockDepth:MessagingRepository.kt$MessagingRepository$fun contactCard(contactUri: Uri): String?</ID>
+    <ID>NestedBlockDepth:MessagingRepository.kt$MessagingRepository$fun exportTo(file: File)</ID>
+    <ID>NestedBlockDepth:MessagingRepository.kt$MessagingRepository$private fun loadMms( threadId: Long, names: Map&lt;String, NameEntry&gt;, region: String, ): List&lt;ChatMessage&gt;</ID>
+    <ID>NestedBlockDepth:MessagingRepository.kt$MessagingRepository$private fun simOwnNumbers(): List&lt;String&gt;</ID>
+    <ID>NestedBlockDepth:MmsRetrieveParser.kt$MmsRetrieveParser$private fun read(pdu: ByteArray): Retrieved?</ID>
+    <ID>NestedBlockDepth:MmsRetrieveParser.kt$MmsRetrieveParser$private fun readPart( pdu: ByteArray, start: Int, headerEnd: Int, dataEnd: Int, index: Int, ): Part?</ID>
+    <ID>ReturnCount:GroupThreads.kt$fun addressKey(raw: String): String</ID>
+    <ID>ReturnCount:InboxGroups.kt$fun receivedBucket( timestamp: Long, now: Long, zone: ZoneId = ZoneId.systemDefault(), weekFields: WeekFields = WeekFields.of(Locale.getDefault()), ): String</ID>
+    <ID>ReturnCount:MessagingRepository.kt$MessagingRepository$fun storeRetrievedMms( placeholder: Uri, pdu: ByteArray, fallbackFrom: String, ): Long</ID>
+    <ID>ReturnCount:MmsRetrieveParser.kt$MmsRetrieveParser$private fun mibForName(name: String): Int?</ID>
+    <ID>ReturnCount:MmsRetrieveParser.kt$MmsRetrieveParser$private fun read(pdu: ByteArray): Retrieved?</ID>
+    <ID>ReturnCount:MmsRetrieveParser.kt$MmsRetrieveParser$private fun readContentType( pdu: ByteArray, start: Int, limit: Int, ): Typed</ID>
+    <ID>ReturnCount:Reactions.kt$private fun parseTapback(body: String): Tapback?</ID>
+    <ID>ReturnCount:Reactions.kt$private fun quoteMatches( body: String, rawQuote: String, ): Boolean</ID>
+    <ID>ReturnCount:Receivers.kt$SmsDeliverReceiver$override fun onReceive( context: Context, intent: Intent?, )</ID>
+    <ID>ReturnCount:ThreadScreen.kt$private fun LazyListState.tailGap(): Int</ID>
+    <ID>ReturnCount:VerificationCodes.kt$VerificationCodes$private fun isMoney( text: String, start: Int, end: Int, ): Boolean</ID>
+    <ID>TooManyFunctions:Format.kt$app.messages.data.Format.kt</ID>
+    <ID>TooManyFunctions:InboxScreen.kt$app.messages.ui.InboxScreen.kt</ID>
+    <ID>TooManyFunctions:LocalStore.kt$app.messages.data.LocalStore.kt</ID>
+    <ID>TooManyFunctions:MessagesViewModel.kt$MessagesViewModel : AndroidViewModel</ID>
+    <ID>TooManyFunctions:MessagingRepository.kt$MessagingRepository</ID>
+    <ID>TooManyFunctions:MmsNotificationParser.kt$MmsNotificationParser</ID>
+    <ID>TooManyFunctions:MmsRetrieveParser.kt$MmsRetrieveParser</ID>
+    <ID>TooManyFunctions:Reactions.kt$app.messages.sms.Reactions.kt</ID>
+    <ID>TooManyFunctions:SendPipeline.kt$SendPipeline</ID>
+    <ID>TooManyFunctions:SettingsScreen.kt$app.messages.ui.SettingsScreen.kt</ID>
+    <ID>TooManyFunctions:Theme.kt$app.messages.ui.Theme.kt</ID>
+    <ID>TooManyFunctions:ThreadScreen.kt$app.messages.ui.ThreadScreen.kt</ID>
+  </CurrentIssues>
+</SmellBaseline>
