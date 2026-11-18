@@ -1655,7 +1655,8 @@ private fun Composer(
                         Modifier
                             .weight(1f)
                             .onPreviewKeyEvent { event ->
-                                if (enterSends && event.type == KeyEventType.KeyDown && event.key == Key.Enter && !event.isShiftPressed) {
+                                val plainEnter = event.type == KeyEventType.KeyDown && event.key == Key.Enter && !event.isShiftPressed
+                                if (enterSends && plainEnter) {
                                     onSend()
                                     true
                                 } else {

@@ -105,7 +105,8 @@ fun OrderableRows(
                             val to = if (from < 0) -1 else (from + slots).coerceIn(0, current.lastIndex)
                             dragFrom = -1
                             dragDy = 0f
-                            if (from >= 0 && to >= 0 && to != from && from <= current.lastIndex) {
+                            val inRange = from in 0..current.lastIndex && to >= 0
+                            if (inRange && to != from) {
                                 val next = current.toMutableList()
                                 val moved = next.removeAt(from)
                                 next.add(to, moved)

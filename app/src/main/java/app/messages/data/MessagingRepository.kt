@@ -881,7 +881,7 @@ class MessagingRepository(
                 val dateCol = cursor.getColumnIndex(Telephony.Mms.DATE)
                 val locationCol = cursor.getColumnIndex(Telephony.Mms.CONTENT_LOCATION)
                 val subCol = cursor.getColumnIndex(Telephony.Mms.SUBSCRIPTION_ID)
-                if (idCol < 0 || typeCol < 0 || dateCol < 0 || locationCol < 0) return emptyList()
+                if (listOf(idCol, typeCol, dateCol, locationCol).any { it < 0 }) return emptyList()
                 while (cursor.moveToNext()) {
                     val id = cursor.getLong(idCol)
                     val type = cursor.getInt(typeCol)
@@ -1540,6 +1540,7 @@ class MessagingRepository(
             error.value = null
             out.sortedWith(compareByDescending<Conversation> { it.pinned }.thenByDescending { it.timestamp })
         } catch (e: SecurityException) {
+            Log.w(TAG, "load conversations: no message access", e)
             error.value = "Allow message access, or set BlurtText as the default SMS app."
             emptyList()
         } catch (e: Exception) {

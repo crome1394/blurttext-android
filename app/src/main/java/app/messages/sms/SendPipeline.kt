@@ -48,12 +48,12 @@ object SendPipeline {
     ): Long =
         withContext(Dispatchers.IO) {
             if (!SmsRole.isDefault(context)) {
-                throw IllegalStateException("Set BlurtText as the default SMS app to send.")
+                error("Set BlurtText as the default SMS app to send.")
             }
             val dest = addresses.map { it.trim() }.filter { it.isNotEmpty() }
-            if (dest.isEmpty()) throw IllegalStateException("Add a recipient.")
+            if (dest.isEmpty()) error("Add a recipient.")
             val text = body.trim()
-            if (text.isEmpty() && attachment == null) throw IllegalStateException("Message is empty.")
+            if (text.isEmpty() && attachment == null) error("Message is empty.")
             try {
                 if (attachment != null || dest.size > 1) {
                     sendMms(context, dest, text, attachment, mime, subId, deliveryReports)
@@ -97,7 +97,7 @@ object SendPipeline {
             }
         val uri =
             context.contentResolver.insert(Telephony.Sms.CONTENT_URI, values)
-                ?: throw IllegalStateException("Set BlurtText as the default SMS app to send.")
+                ?: error("Set BlurtText as the default SMS app to send.")
         val manager = manager(context, subId)
         val parts = manager.divideMessage(body)
         PartTracker.begin(uri.toString(), parts.size)
@@ -140,7 +140,7 @@ object SendPipeline {
         if (attachment != null) {
             val kind = (mime ?: "image/jpeg").lowercase()
             if (!kind.startsWith("image/") && !kind.startsWith("audio/") && !kind.startsWith("video/")) {
-                throw IllegalStateException("MMS can send a picture, GIF, audio clip, or video.")
+                error("MMS can send a picture, GIF, audio clip, or video.")
             }
             val outbound = MmsSender.send(context, manager, addresses, body, attachment, kind, subscription, deliveryReports)
             stored = outbound.bytes
@@ -166,12 +166,12 @@ object SendPipeline {
         deliveryReports: Boolean,
     ) {
         val wire = addresses.map { mmsWireAddress(context, it) }.filter { it.isNotEmpty() }
-        if (wire.isEmpty()) throw IllegalStateException("Add a recipient.")
+        if (wire.isEmpty()) error("Add a recipient.")
         val req = SendReq()
         for (to in wire) req.addTo(EncodedStringValue(to))
         req.setDate(System.currentTimeMillis() / 1000)
         val textBytes = body.toByteArray(Charsets.UTF_8)
-        val smilBytes = textSmil().toByteArray(Charsets.UTF_8)
+        val smilBytes = TEXT_SMIL.toByteArray(Charsets.UTF_8)
         val pduBody = PduBody()
         val textPart = PduPart()
         textPart.setCharset(CharacterSets.UTF_8)
@@ -200,7 +200,7 @@ object SendPipeline {
         }
         val pdu =
             PduComposer(context, req).make()
-                ?: throw IllegalStateException("Could not build the MMS.")
+                ?: error("Could not build the MMS.")
         dispatchPdu(context, manager, pdu)
     }
 
@@ -236,9 +236,9 @@ object SendPipeline {
             )
         manager.sendMultimediaMessage(context, contentUri, null, null, sent)
         val finished = waiter.latch.await(30, TimeUnit.SECONDS)
-        if (!finished) throw IllegalStateException("The MMS is still sending. Leave mobile data on and try again.")
+        if (!finished) error("The MMS is still sending. Leave mobile data on and try again.")
         if (waiter.code.get() != Activity.RESULT_OK) {
-            throw IllegalStateException("Could not send the MMS (error ${waiter.code.get()}). Mobile data has to be on.")
+            error("Could not send the MMS (error ${waiter.code.get()}). Mobile data has to be on.")
         }
     }
 
@@ -408,7 +408,7 @@ object SendPipeline {
         }
     }
 
-    private fun textSmil(): String =
+    private const val TEXT_SMIL =
         """<smil><head><layout><root-layout width="320px" height="480px"/><region id="Text" top="0" left="0" height="100%" fit="scroll"/></layout></head><body><par dur="5000ms"><text src="text_0.txt" region="Text"/></par></body></smil>"""
 
     fun extensionOf(mime: String): String =
