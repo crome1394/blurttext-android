@@ -14,6 +14,23 @@ git submodule update --init
 
 The debug APK is `app/build/outputs/apk/debug/app-debug.apk`. It has a different signature from the release build, so remove one before installing the other.
 
+## Checks
+
+Run these before a commit. All of them must pass.
+
+```bash
+./gradlew :app:ktlintCheck :app:detekt :app:lintDebug :lantext:lintDebug :app:testDebugUnitTest
+```
+
+| Check | Config | Notes |
+|---|---|---|
+| ktlint 1.8 | `.editorconfig` | Official style, 140 columns. `./gradlew :app:ktlintFormat` fixes most findings. |
+| detekt 1.23 | `config/detekt/detekt.yml` | Only overrides of detekt's defaults, each with its reason. |
+| detekt baseline | `app/detekt-baseline.xml` | Existing size and complexity findings in the large screens. Shrink it as they are split; regenerate with `./gradlew :app:detektBaseline` only after such a refactor. |
+| Android lint | `app/lint.xml`, `lantext/lint.xml` | Suppressions in code and manifests say why. |
+
+ktlint and detekt cover `app` only. The `:lantext` module compiles a copy of the LanText sources, so fix those in the LanText repository.
+
 ## Default SMS app
 
 BlurtText must be the default SMS app to write the system message store.
