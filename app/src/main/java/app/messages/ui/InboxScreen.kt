@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.offset
@@ -261,7 +262,9 @@ fun InboxScreen(vm: MessagesViewModel, onRequestRole: () -> Unit) {
         containerColor = canvas,
         contentColor = ink,
         bottomBar = {
-            Column(Modifier.background(canvas)) {
+            // Edge-to-edge draws under the navigation bar. The background fills behind it,
+            // and the padding keeps the footer above the three-button bar.
+            Column(Modifier.background(canvas).navigationBarsPadding()) {
                 HorizontalDivider()
                 if (filterOpen) {
                     InboxFilterMenu(
