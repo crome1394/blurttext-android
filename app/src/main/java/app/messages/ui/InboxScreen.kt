@@ -1001,7 +1001,7 @@ internal fun filterGlyph(): Int {
 }
 
 private fun swipeThresholdHaptic(): Int =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
         HapticFeedbackConstants.GESTURE_THRESHOLD_ACTIVATE
     } else {
         HapticFeedbackConstants.CLOCK_TICK
