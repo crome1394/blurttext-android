@@ -110,6 +110,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -955,7 +956,7 @@ fun ComposeScreen(
         attachment = null
         vm.send(addresses, body, path, activeSub)
     }
-    val fraction = rememberSaveable { mutableStateOf(SETTINGS_CARD_START) }
+    val fraction = rememberSaveable { mutableFloatStateOf(SETTINGS_CARD_START) }
     BoxWithConstraints(
         Modifier
             .fillMaxWidth()
@@ -965,7 +966,7 @@ fun ComposeScreen(
         val spanPx = with(LocalDensity.current) { maxHeight.toPx() }
         val cap = maxHeight * SETTINGS_CARD_MAX
         val floor = if (280.dp < cap) 280.dp else cap
-        val cardHeight = (maxHeight * fraction.value).coerceIn(floor, cap)
+        val cardHeight = (maxHeight * fraction.floatValue).coerceIn(floor, cap)
         Surface(
             modifier =
                 Modifier

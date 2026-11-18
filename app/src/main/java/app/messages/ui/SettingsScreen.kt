@@ -2,6 +2,7 @@ package app.messages.ui
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -66,8 +67,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -161,7 +164,7 @@ fun SettingsScreen(
     val searchField = @Composable {
         SettingsSearch(query) { query = it }
     }
-    val fraction = rememberSaveable { mutableStateOf(SETTINGS_CARD_START) }
+    val fraction = rememberSaveable { mutableFloatStateOf(SETTINGS_CARD_START) }
     BoxWithConstraints(
         Modifier
             .fillMaxWidth()
@@ -171,7 +174,7 @@ fun SettingsScreen(
         val spanPx = with(LocalDensity.current) { maxHeight.toPx() }
         val cap = maxHeight * SETTINGS_CARD_MAX
         val floor = if (280.dp < cap) 280.dp else cap
-        val cardHeight = (maxHeight * fraction.value).coerceIn(floor, cap)
+        val cardHeight = (maxHeight * fraction.floatValue).coerceIn(floor, cap)
         Surface(
             modifier =
                 Modifier
@@ -327,11 +330,11 @@ internal fun settingsCardFraction(
 
 internal fun Modifier.dragToResize(
     spanPx: Float,
-    fraction: MutableState<Float>,
+    fraction: MutableFloatState,
 ): Modifier =
     pointerInput(spanPx) {
         detectVerticalDragGestures { _, dragAmount ->
-            fraction.value = settingsCardFraction(fraction.value, dragAmount, spanPx)
+            fraction.floatValue = settingsCardFraction(fraction.floatValue, dragAmount, spanPx)
         }
     }
 
@@ -749,7 +752,7 @@ private fun SendingPage(
                         )
                     },
                     trailingContent = {
-                        if (!exact) {
+                        if (!exact && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                             TextButton(onClick = {
                                 val intent =
                                     Intent(

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+    <!-- Adaptive launcher icons stay in mipmap-anydpi-v26. Moving them to mipmap-anydpi made
+         aapt2 fail to find mipmap/ic_launcher in the LanText build, so keep the folder as is. -->
+    <issue id="ObsoleteSdkInt">
+        <ignore path="src/main/res/mipmap-anydpi-v26" />
+    </issue>
+</lint>

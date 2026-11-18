@@ -31,7 +31,7 @@
     <ID>LargeClass:MessagingRepository.kt$MessagingRepository</ID>
     <ID>LongMethod:GifPicker.kt$@Composable fun GifPicker( hasKey: Boolean, searchGifs: suspend (String) -&gt; List&lt;KlipyGifs.Hit&gt;, attachGif: suspend (KlipyGifs.Hit) -&gt; String, onAttached: (String) -&gt; Unit, onError: (String) -&gt; Unit, onOpenSettings: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
     <ID>LongMethod:InboxScreen.kt$@Composable private fun InboxFooter( label: String, filterCaption: String, height: Int, items: List&lt;RibbonItem&gt;, searchOpen: Boolean, filterActive: Boolean, onSearch: () -&gt; Unit, onSettings: () -&gt; Unit, onComputer: () -&gt; Unit, onFilter: () -&gt; Unit, onTrash: () -&gt; Unit, )</ID>
-    <ID>LongMethod:InboxScreen.kt$@OptIn(ExperimentalFoundationApi::class) @Composable private fun ConversationRow( conversation: Conversation, selected: Boolean, onClick: () -&gt; Unit, onLongPress: () -&gt; Unit, onAvatar: () -&gt; Unit, onPin: () -&gt; Unit, striped: Boolean = false, modifier: Modifier = Modifier, )</ID>
+    <ID>LongMethod:InboxScreen.kt$@OptIn(ExperimentalFoundationApi::class) @Composable private fun ConversationRow( conversation: Conversation, selected: Boolean, onClick: () -&gt; Unit, onLongPress: () -&gt; Unit, onAvatar: () -&gt; Unit, onPin: () -&gt; Unit, modifier: Modifier = Modifier, striped: Boolean = false, )</ID>
     <ID>LongMethod:InboxScreen.kt$@OptIn(ExperimentalFoundationApi::class) @Composable private fun SwipeConversation( conversation: Conversation, selected: Boolean, striped: Boolean, swipeEnabled: Boolean, startAction: String, endAction: String, onLongPress: () -&gt; Unit, onClick: () -&gt; Unit, onAvatar: () -&gt; Unit, onPin: () -&gt; Unit, onUnread: () -&gt; Unit, onRead: () -&gt; Unit, onDelete: () -&gt; Unit, )</ID>
     <ID>LongMethod:InboxScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun InboxScreen( vm: MessagesViewModel, onRequestRole: () -&gt; Unit, )</ID>
     <ID>LongMethod:LanMessagingPage.kt$@Composable fun LanMessagingPage(active: Boolean)</ID>
@@ -72,10 +72,10 @@
     <ID>LoopWithTooManyJumpStatements:MessagingRepository.kt$MessagingRepository$while</ID>
     <ID>LoopWithTooManyJumpStatements:OrderableRows.kt$while</ID>
     <ID>LoopWithTooManyJumpStatements:VerificationCodes.kt$VerificationCodes$for</ID>
+    <ID>NestedBlockDepth:MessagingRepository.kt$MessagingRepository$@SuppressLint("HardwareIds") private fun simOwnNumbers(): List&lt;String&gt;</ID>
     <ID>NestedBlockDepth:MessagingRepository.kt$MessagingRepository$fun contactCard(contactUri: Uri): String?</ID>
     <ID>NestedBlockDepth:MessagingRepository.kt$MessagingRepository$fun exportTo(file: File)</ID>
     <ID>NestedBlockDepth:MessagingRepository.kt$MessagingRepository$private fun loadMms( threadId: Long, names: Map&lt;String, NameEntry&gt;, region: String, ): List&lt;ChatMessage&gt;</ID>
-    <ID>NestedBlockDepth:MessagingRepository.kt$MessagingRepository$private fun simOwnNumbers(): List&lt;String&gt;</ID>
     <ID>NestedBlockDepth:MmsRetrieveParser.kt$MmsRetrieveParser$private fun read(pdu: ByteArray): Retrieved?</ID>
     <ID>NestedBlockDepth:MmsRetrieveParser.kt$MmsRetrieveParser$private fun readPart( pdu: ByteArray, start: Int, headerEnd: Int, dataEnd: Int, index: Int, ): Part?</ID>
     <ID>ReturnCount:GroupThreads.kt$fun addressKey(raw: String): String</ID>

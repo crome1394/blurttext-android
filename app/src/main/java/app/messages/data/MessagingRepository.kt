@@ -3,6 +3,7 @@
 package app.messages.data
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
@@ -1263,6 +1264,8 @@ class MessagingRepository(
         }
     }
 
+    // Reads this phone's own numbers so group MMS can leave them out of the recipients. Never stored off the phone.
+    @SuppressLint("HardwareIds")
     private fun simOwnNumbers(): List<String> {
         if (!granted(Manifest.permission.READ_PHONE_STATE) && !granted(Manifest.permission.READ_PHONE_NUMBERS)) {
             return emptyList()

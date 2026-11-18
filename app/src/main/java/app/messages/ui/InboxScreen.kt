@@ -851,8 +851,8 @@ private fun ConversationRow(
     onLongPress: () -> Unit,
     onAvatar: () -> Unit,
     onPin: () -> Unit,
-    striped: Boolean = false,
     modifier: Modifier = Modifier,
+    striped: Boolean = false,
 ) {
     val unread = conversation.unread > 0
     val card = if (striped) MaterialTheme.colorScheme.mailCardStripe() else MaterialTheme.colorScheme.mailCard()
@@ -1289,10 +1289,7 @@ private fun InboxSearchField(
     query: String,
     onQuery: (String) -> Unit,
     onClear: () -> Unit,
-    modifier: Modifier =
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+    modifier: Modifier = Modifier,
 ) {
     val focus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current

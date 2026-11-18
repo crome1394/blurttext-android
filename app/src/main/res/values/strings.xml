@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<!-- app_name, notification_*, and widget_description override LanText's strings so the shared code shows BlurtText. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="UnusedResources">
     <string name="app_name">BlurtText</string>
     <string name="messages_app_name">BlurtText</string>
     <string name="notification_listening">BlurtText is available on this Wi-Fi</string>
